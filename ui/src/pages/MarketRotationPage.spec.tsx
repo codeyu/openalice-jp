@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { MarketRotationPage } from './MarketRotationPage'
+import { useMarketFocus } from '../live/market-focus'
 
 const mocks = vi.hoisted(() => ({
   sectorRotation: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock('../components/MeasuredChartFrame', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  useMarketFocus.setState({ focus: 'us' })
 })
 
 afterEach(cleanup)

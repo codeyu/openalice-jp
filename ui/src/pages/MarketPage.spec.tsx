@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { i18n } from '../i18n'
+import { useMarketFocus } from '../live/market-focus'
 
 const mocks = vi.hoisted(() => ({
   openOrFocus: vi.fn(),
@@ -25,6 +26,7 @@ import { MarketPage } from './MarketPage'
 
 beforeEach(async () => {
   vi.clearAllMocks()
+  useMarketFocus.setState({ focus: 'us' })
   await i18n.changeLanguage('zh')
 })
 

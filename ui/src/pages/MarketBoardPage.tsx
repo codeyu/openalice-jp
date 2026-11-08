@@ -4,6 +4,8 @@ import { LineChart, Line, YAxis, XAxis, Tooltip } from 'recharts'
 import { Search } from 'lucide-react'
 import { useReferenceBoard } from '../components/market/useReferenceBoard'
 import { BoardMeta } from '../components/market/BoardMeta'
+import { JpPendingPage, MarketFocusToggle } from '../components/market/MarketFocus'
+import { useMarketFocus } from '../live/market-focus'
 import { PageHeader } from '../components/PageHeader'
 import { CenteredLoading } from '../components/StateViews'
 import { Button } from '../components/ui/button'
@@ -28,7 +30,23 @@ interface PageProps {
   visible: boolean
 }
 
+type BoardKind = PageProps['spec']['params']['board']
+
+/** Boards whose data is market-specific. Global macro and shipping are market-neutral. */
+type PendingTitleKey = 'market.boardMovers' | 'market.boardCalendar' | 'market.boardMacro' | 'market.boardTermStructure' | 'market.boardBoj'
+const JP_PENDING_TITLE_KEYS: Partial<Record<BoardKind, PendingTitleKey>> = {
+  movers: 'market.boardMovers',
+  calendar: 'market.boardCalendar',
+  macro: 'market.boardMacro',
+  'term-structure': 'market.boardTermStructure',
+  fed: 'market.boardBoj',
+}
+
 export function MarketBoardPage({ spec }: PageProps) {
+  const { t } = useTranslation()
+  const focus = useMarketFocus((s) => s.focus)
+  const pendingTitleKey = JP_PENDING_TITLE_KEYS[spec.params.board]
+  if (focus === 'jp' && pendingTitleKey) return <JpPendingPage title={t(pendingTitleKey)} />
   switch (spec.params.board) {
     case 'movers':
       return <MoversBoardView />
@@ -62,6 +80,7 @@ function MoversBoardView() {
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader
         title={t('market.boardMovers')}
+        right={<MarketFocusToggle />}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{t('market.moversSubtitle')}</span>
@@ -196,6 +215,7 @@ function CalendarBoardView() {
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader
         title={t('market.boardCalendar')}
+        right={<MarketFocusToggle />}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{t('market.calendarSubtitle')}</span>
@@ -570,6 +590,7 @@ function MacroBoardView() {
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader
         title={t('market.boardMacro')}
+        right={<MarketFocusToggle />}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{t('market.macroSubtitle')}</span>
@@ -627,6 +648,7 @@ function TermStructureBoardView() {
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader
         title={t('market.boardTermStructure')}
+        right={<MarketFocusToggle />}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{t('market.termSubtitle')}</span>
@@ -981,6 +1003,7 @@ function FedBoardView() {
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader
         title={t('market.boardFed')}
+        right={<MarketFocusToggle />}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{t('market.fedSubtitle')}</span>

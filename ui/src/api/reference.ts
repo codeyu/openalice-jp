@@ -185,7 +185,40 @@ export interface FedBoard {
   meta: ReferenceMeta
 }
 
+export interface JpSectorMove {
+  name: string
+  avgChangePct: number
+  advancers: number
+  decliners: number
+  count: number
+}
+
+export interface JpBreadthBoard {
+  date: string
+  prevDate: string
+  breadth: { advancers: number; decliners: number; unchanged: number; total: number }
+  sectors: JpSectorMove[]
+  meta: ReferenceMeta
+}
+
+export type JpBreadthResult =
+  | { ok: true; board: JpBreadthBoard }
+  | { ok: false; notConfigured: boolean; error: string }
+
+/** Distinguishes "not configured yet" (409) from a real failure, without throwing. */
+async function fetchJpBreadth(): Promise<JpBreadthResult> {
+  const res = await fetch('/api/reference/jp-breadth')
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('app:unauthorized'))
+    throw new Error('Unauthorized')
+  }
+  const body = await res.json().catch(() => ({})) as { code?: string; error?: string }
+  if (res.ok) return { ok: true, board: body as unknown as JpBreadthBoard }
+  return { ok: false, notConfigured: body.code === 'not_configured', error: body.error ?? res.statusText }
+}
+
 export const referenceApi = {
+  jpBreadth: fetchJpBreadth,
   movers: () => fetchJson<MoversBoard>('/api/reference/movers'),
   calendar: () => fetchJson<CalendarBoard>('/api/reference/calendar'),
   macro: () => fetchJson<MacroBoard>('/api/reference/macro'),

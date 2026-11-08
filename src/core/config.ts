@@ -341,7 +341,17 @@ const marketDataSchema = z.object({
     benzinga: z.string().optional(),
     tiingo: z.string().optional(),
     biztoc: z.string().optional(),
+    /** Read-only token for a self-hosted kabu gateway database (PostgREST). */
+    kabuDb: z.string().optional(),
+    /** Read-only kabu gateway token: market info and queries, no order permission. */
+    kabuGateway: z.string().optional(),
   }).default({}),
+  /** Self-hosted kabu STATION gateway. Only read-only tokens live here (the
+   *  DB token and a gateway token without order permission); an
+   *  order-capable gateway token belongs to a sealed UTA account, never this file. */
+  kabu: z.object({
+    baseUrl: z.string().default(''),
+  }).default({ baseUrl: '' }),
   /** Hosted reference-data hub (TraderHub). Enabled by default: anonymous
    *  GETs of public boards, no user data attached; one switch to opt out.
    *  Self-hosters point baseUrl at their own instance. */

@@ -8,11 +8,55 @@
  * way out).
  */
 
+import { createHash } from 'node:crypto'
 import { Hono } from 'hono'
 import type { EngineContext } from '../../core/types.js'
+import { readMarketDataConfig } from '../../core/config.js'
+import { fetchJpBreadth, type JpBreadthBoard } from '../../domain/market-data/jp/breadth.js'
+import type { KabuDbConfig } from '../../domain/market-data/jp/kabu-db.js'
+
+const JP_BREADTH_TTL_MS = 10 * 60_000
+
+/** Per-config cache; the key hashes the token so a new token never reuses old data. */
+export function createJpBreadthCache(load: (cfg: KabuDbConfig) => Promise<JpBreadthBoard> = fetchJpBreadth, ttlMs = JP_BREADTH_TTL_MS) {
+  let entry: { key: string; at: number; value: Promise<JpBreadthBoard> } | null = null
+  return {
+    get(cfg: KabuDbConfig): Promise<JpBreadthBoard> {
+      const key = `${cfg.baseUrl}#${createHash('sha256').update(cfg.token).digest('hex')}`
+      if (entry && entry.key === key && Date.now() - entry.at < ttlMs) return entry.value
+      const value = load(cfg)
+      entry = { key, at: Date.now(), value }
+      value.catch(() => { if (entry?.value === value) entry = null })
+      return value
+    },
+  }
+}
+
+const jpBreadthCache = createJpBreadthCache()
+
+/** Token for read-only kabu calls: a dedicated DB token wins, else the read-only gateway token. */
+export function kabuReadToken(keys: { kabuDb?: string; kabuGateway?: string }): string | undefined {
+  return keys.kabuDb?.trim() || keys.kabuGateway?.trim() || undefined
+}
 
 export function createReferenceRoutes(ctx: EngineContext): Hono {
   const app = new Hono()
+
+  // GET /api/reference/jp-breadth → Japan advancers/decliners + TOPIX-17 sectors
+  // from the user's self-hosted kabu gateway database (read-only DB token).
+  app.get('/jp-breadth', async (c) => {
+    const md = await readMarketDataConfig()
+    const baseUrl = md.kabu.baseUrl.trim()
+    const token = kabuReadToken(md.providerKeys)
+    if (!baseUrl || !token) {
+      return c.json({ error: 'kabu gateway URL and read-only token are not configured (Settings → Market Data).', code: 'not_configured' }, 409)
+    }
+    try {
+      return c.json(await jpBreadthCache.get({ baseUrl, token }))
+    } catch (err) {
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 502)
+    }
+  })
 
   // GET /api/reference/movers → gainers / losers / active board
   app.get('/movers', async (c) => {

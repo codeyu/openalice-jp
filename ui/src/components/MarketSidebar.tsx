@@ -7,6 +7,7 @@ import { type AssetClass, type BarSourceCandidate } from '../api/market'
 import { useAssetSearch } from './market/useAssetSearch'
 import { useWorkspace } from '../tabs/store'
 import { useWatchlist } from '../tabs/watchlist-store'
+import { useMarketFocus } from '../live/market-focus'
 import { getFocusedTab, type ViewSpec } from '../tabs/types'
 import { SidebarRow } from './SidebarRow'
 import { SidebarSectionHeader } from './SidebarSectionHeader'
@@ -45,6 +46,7 @@ function routeAssetClass(c: BarSourceCandidate['assetClass']): AssetClass {
  */
 export function MarketSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation()
+  const marketFocus = useMarketFocus((s) => s.focus)
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [watchlistOpen, setWatchlistOpen] = useState(true)
@@ -249,7 +251,7 @@ export function MarketSidebar({ onNavigate }: { onNavigate?: () => void }) {
             onClick={() => openOrFocus({ kind: 'market-board', params: { board: 'global-macro' } })}
           />
           <SidebarRow
-            label={t('market.boardFed')}
+            label={t(marketFocus === 'jp' ? 'market.boardBoj' : 'market.boardFed')}
             active={focusedSpec?.kind === 'market-board' && focusedSpec.params.board === 'fed'}
             onClick={() => openOrFocus({ kind: 'market-board', params: { board: 'fed' } })}
           />

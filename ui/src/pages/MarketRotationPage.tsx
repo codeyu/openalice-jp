@@ -6,6 +6,8 @@ import {
   XAxis, YAxis, Tooltip,
 } from 'recharts'
 import { BoardMeta } from '../components/market/BoardMeta'
+import { JpPendingPage, MarketFocusToggle } from '../components/market/MarketFocus'
+import { useMarketFocus } from '../live/market-focus'
 import { MeasuredChartFrame } from '../components/MeasuredChartFrame'
 import { PageHeader } from '../components/PageHeader'
 import { CenteredLoading } from '../components/StateViews'
@@ -39,6 +41,13 @@ interface Point {
 }
 
 export function MarketRotationPage() {
+  const { t } = useTranslation()
+  const focus = useMarketFocus((s) => s.focus)
+  if (focus === 'jp') return <JpPendingPage title={t('market.sectorRotation')} />
+  return <UsRotationView />
+}
+
+function UsRotationView() {
   const { t } = useTranslation()
   const [data, setData] = useState<SectorRotationResult | null>(null)
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
@@ -89,6 +98,7 @@ export function MarketRotationPage() {
     <div className="flex flex-col flex-1 min-h-0">
       <PageHeader
         title={t('market.sectorRotation')}
+        right={<MarketFocusToggle />}
         description={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{t('market.rotationSubtitle')}</span>

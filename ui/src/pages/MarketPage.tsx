@@ -2,6 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Activity, ArrowUpRight, CalendarDays, Globe2, Landmark, TrendingUp } from 'lucide-react'
 import { BoardMeta } from '../components/market/BoardMeta'
+import { MarketFocusToggle } from '../components/market/MarketFocus'
+import { JpOverview } from '../components/market/JpOverview'
+import { useMarketFocus } from '../live/market-focus'
 import { PageHeader } from '../components/PageHeader'
 import { SearchBox } from '../components/market/SearchBox'
 import { SeriesCard } from '../components/market/SeriesCard'
@@ -15,18 +18,20 @@ export function MarketPage() {
   const openOrFocus = useWorkspace((s) => s.openOrFocus)
   const [strip, setStrip] = useState<ValuationStrip | null>(null)
   const [stripError, setStripError] = useState<string | null>(null)
+  const focus = useMarketFocus((s) => s.focus)
 
   useEffect(() => {
+    if (focus !== 'us') return
     let alive = true
     referenceApi.valuation()
       .then((res) => { if (alive) setStrip(res) })
       .catch((err) => { if (alive) setStripError(err instanceof Error ? err.message : 'Failed to load') })
     return () => { alive = false }
-  }, [])
+  }, [focus])
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <PageHeader title={t('market.pageTitle')} description={t('market.pageDescription')} />
+      <PageHeader title={t('market.pageTitle')} description={t('market.pageDescription')} right={<MarketFocusToggle />} />
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 md:px-8">
         <SearchBox />
 
@@ -74,8 +79,10 @@ export function MarketPage() {
           </div>
         </section>
 
+        {focus === 'jp' && <JpOverview />}
+
         {/* S&P 500 valuation strip — the market-level regime read. */}
-        <div className="flex flex-col gap-2">
+        {focus === 'us' && <div className="flex flex-col gap-2">
           <h3 className="text-caption font-semibold text-foreground">
             {t('market.valuationTitle')}
             {strip && <span className="ml-2 normal-case font-normal tracking-normal"><BoardMeta meta={strip.meta} /></span>}
@@ -103,7 +110,7 @@ export function MarketPage() {
               })}
             </div>
           )}
-        </div>
+        </div>}
 
         <section className="border-y border-border/60 py-4">
           <div>

@@ -13,6 +13,7 @@ import { useWorkspace } from '../tabs/store'
 import { UTADataSourceRow } from '../components/uta/UTADataSourceRow'
 import { displayNameForUTA } from '../lib/uta-account-filter'
 import type { UTAConfig } from '../api/types'
+import { referenceApi } from '../api/reference'
 
 type MarketDataConfig = Record<string, unknown>
 
@@ -220,6 +221,7 @@ export function MarketDataPage() {
   }
 
   const providerKeys = (config.providerKeys ?? {}) as Record<string, string>
+  const kabu = (config.kabu ?? { baseUrl: '' }) as { baseUrl: string }
   const extraVendors = (config.extraVendors ?? []) as string[]
   const sourceRows = deriveSourceRows(hub.enabled, ping, providerKeys, extraVendors, trading.utas)
 
@@ -293,6 +295,13 @@ export function MarketDataPage() {
           <SourcesCard rows={sourceRows} onAddFmp={jumpToFmp} />
 
           <ChartVendorsSection extraVendors={extraVendors} onToggle={handleExtraVendorToggle} />
+
+          <KabuGatewaySection
+            baseUrl={kabu.baseUrl}
+            gatewayToken={providerKeys.kabuGateway ?? ''}
+            onBaseUrlChange={(value) => updateConfig({ kabu: { ...kabu, baseUrl: value } })}
+            onGatewayTokenChange={(value) => handleKeyChange('kabuGateway', value)}
+          />
         </div>
         <BrokerKlineSourcesSection
           utas={trading.utas}
@@ -475,6 +484,75 @@ function ChartVendorsSection({
             </div>
           )
         })}
+      </div>
+    </section>
+  )
+}
+
+// ==================== Japan: kabu gateway database ====================
+
+function KabuGatewaySection({
+  baseUrl,
+  gatewayToken,
+  onBaseUrlChange,
+  onGatewayTokenChange,
+}: {
+  baseUrl: string
+  gatewayToken: string
+  onBaseUrlChange: (value: string) => void
+  onGatewayTokenChange: (value: string) => void
+}) {
+  const [test, setTest] = useState<{ state: 'idle' | 'testing' | 'ok' | 'error'; text?: string }>({ state: 'idle' })
+  const runTest = async () => {
+    setTest({ state: 'testing' })
+    try {
+      const res = await referenceApi.jpBreadth()
+      setTest(res.ok
+        ? { state: 'ok', text: `Connected — ${res.board.date}: ${res.board.breadth.total} stocks, ${res.board.sectors.length} sectors` }
+        : { state: 'error', text: res.error })
+    } catch (err) {
+      setTest({ state: 'error', text: err instanceof Error ? err.message : String(err) })
+    }
+  }
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 text-[13px] leading-[18px] font-semibold text-foreground">Japan market — kabu gateway</h2>
+      <p className="text-[12px] text-muted-foreground/70 mb-2.5 max-w-[640px]">
+        Your self-hosted kabu STATION gateway, read-only: its database feeds Japan market breadth and
+        TOPIX-17 sector moves. Never paste an order-capable token here — broker access belongs to a UTA
+        account.
+      </p>
+      <div className="rounded-lg border border-border/70 bg-card px-4 py-3.5 space-y-3">
+        <label className="block">
+          <span className="block text-[12px] font-medium text-foreground">Gateway URL</span>
+          <input
+            type="url"
+            value={baseUrl}
+            onChange={(e) => onBaseUrlChange(e.target.value)}
+            placeholder="https://kabu-gateway.example.com"
+            className={`${inputClass} mt-1 max-w-[420px] font-mono text-[12px]`}
+          />
+        </label>
+        <label className="block">
+          <span className="block text-[12px] font-medium text-foreground">Read-only gateway token</span>
+          <input
+            type="password"
+            autoComplete="off"
+            value={gatewayToken}
+            onChange={(e) => onGatewayTokenChange(e.target.value)}
+            placeholder="Bearer token for /kabusapi — must NOT have order permission"
+            className={`${inputClass} mt-1 max-w-[420px] font-mono text-[12px]`}
+          />
+          <span className="mt-1 block text-[11px] text-muted-foreground/70">Used for the info endpoints and the read-only database. Stored with your other data-provider keys, so only use a token the gateway refuses for orders.</span>
+        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" size="sm" disabled={!baseUrl || !gatewayToken || test.state === 'testing'} onClick={() => { void runTest() }}>
+            {test.state === 'testing' ? 'Testing…' : 'Test connection'}
+          </Button>
+          {test.text && (
+            <span role="status" className={`text-[12px] ${test.state === 'ok' ? 'text-success' : 'text-destructive'}`}>{test.text}</span>
+          )}
+        </div>
       </div>
     </section>
   )

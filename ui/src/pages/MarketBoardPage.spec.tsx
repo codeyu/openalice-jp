@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { i18n } from '../i18n'
+import { useMarketFocus } from '../live/market-focus'
 import { formatTermAxisLabel, formatTermAxisPrice, MarketBoardPage } from './MarketBoardPage'
 
 const mocks = vi.hoisted(() => ({
@@ -58,6 +59,7 @@ vi.mock('../components/MeasuredChartFrame', () => ({
 beforeEach(async () => {
   mocks.openOrFocus.mockReset()
   mocks.boardData = moversBoard
+  useMarketFocus.setState({ focus: 'us' })
   await i18n.changeLanguage('zh')
 })
 

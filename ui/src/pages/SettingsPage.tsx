@@ -29,6 +29,7 @@ import { useEffectivePreferenceSlot } from '../theme/useEffectiveTheme'
 import { VersionOverviewSection } from '../components/settings/VersionOverviewSection'
 import { UpdateLifecycleSection } from '../components/settings/UpdateLifecycleSection'
 import { AliceLocationSection } from '../components/settings/AliceLocationSection'
+import { MarketFocusToggle } from '../components/market/MarketFocus'
 import { Button } from '../components/ui/button'
 import { SelectionCheckIcon } from '../components/ui/selection-check-icon'
 import { getBackendConnection } from '../auth/backendConnection'
@@ -578,6 +579,19 @@ export function LanguageSection() {
   )
 }
 
+// ==================== Market focus ====================
+
+export function MarketFocusSection() {
+  const { t } = useTranslation()
+  return (
+    <ConfigSection title={t('settings.marketFocus.title')} description={t('settings.marketFocus.description')}>
+      <div className="py-1">
+        <MarketFocusToggle />
+      </div>
+    </ConfigSection>
+  )
+}
+
 // ==================== Data location ====================
 
 export function DataHomeSection() {
@@ -785,6 +799,9 @@ function SettingsSection() {
   return (
     <div className="mx-auto w-full max-w-[1100px]">
       <AliceLocationSection />
+
+      {/* Which equity market the Market pages show */}
+      <MarketFocusSection />
 
       {/* Installation and update ownership */}
       <VersionOverviewSection />
