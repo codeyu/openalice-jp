@@ -40,6 +40,38 @@ const MIME: Record<string, string> = {
   '.woff2': 'font/woff2', '.json': 'application/json',
 }
 
+/**
+ * Bridge an upgraded client socket to its upstream peer. Browsers reset
+ * WebSockets routinely (page reloads, HMR, sleep); a reset on either side
+ * must close both ends, never surface as an unhandled 'error' that kills
+ * the relay process.
+ */
+export function bridgeUpgradedSockets(client: Duplex, peer: Duplex, sockets: Set<Duplex>): void {
+  const closeBoth = () => { client.destroy(); peer.destroy() }
+  client.on('error', closeBoth)
+  peer.on('error', closeBoth)
+  sockets.add(client)
+  client.on('close', () => { sockets.delete(client); peer.destroy() })
+  peer.on('close', () => client.destroy())
+  client.pipe(peer).pipe(client)
+}
+
+/**
+ * Tie an HTTP proxy hop to its client: a client that disconnects aborts the
+ * upstream request, and stream errors on either side close quietly instead of
+ * becoming unhandled 'error' events. Returns whether the client went away, so
+ * the caller can tell a client abort from a real upstream failure.
+ */
+export function guardProxyHop(req: IncomingMessage, res: ServerResponse, upstream: ReturnType<typeof httpRequest>): () => boolean {
+  let clientGone = false
+  const abort = () => { clientGone = true; upstream.destroy() }
+  req.on('error', abort)
+  res.on('error', abort)
+  res.on('close', () => { if (!res.writableFinished) abort() })
+  upstream.on('response', (response) => response.on('error', () => res.destroy()))
+  return () => clientGone
+}
+
 export interface WebRelayOptions {
   port?: number
   open?: boolean
@@ -543,7 +575,10 @@ export class WebRelay {
     if (req.url?.startsWith('/api/auth/status')) {
       upstream.setTimeout(4_000, () => upstream.destroy(new Error('Backend heartbeat timed out')))
     }
+    const clientGone = guardProxyHop(req, res, upstream)
     upstream.on('error', (error) => {
+      // A browser that went away is not a backend failure: no recovery, no reply.
+      if (clientGone()) return
       if (this.target === target && this.generation === generation) void this.recoverTarget(target)
       if (!res.headersSent) json(res, 502, { error: error.message }); else res.destroy(error)
     })
@@ -551,6 +586,8 @@ export class WebRelay {
   }
 
   private upgrade(req: IncomingMessage, socket: Duplex, head: Buffer): void {
+    // The client may reset before the upstream handshake finishes.
+    socket.on('error', () => socket.destroy())
     const surfaceOrigin = this.surfaceOrigin(req)
     if (!this.validRequest(req, false, surfaceOrigin ?? this.origin)) { socket.destroy(); return }
     if (!surfaceOrigin && !req.url?.startsWith('/api/')) {
@@ -569,12 +606,10 @@ export class WebRelay {
       socket.write(lines.join('\r\n'))
       if (peerHead.length) socket.write(peerHead)
       if (head.length) peer.write(head)
-      this.sockets.add(socket)
-      socket.on('close', () => { this.sockets.delete(socket); peer.destroy() })
-      peer.on('close', () => socket.destroy())
-      socket.pipe(peer).pipe(socket)
+      bridgeUpgradedSockets(socket, peer, this.sockets)
     })
     upstream.on('error', () => socket.destroy())
+    socket.once('close', () => upstream.destroy())
     upstream.end()
   }
 
@@ -590,7 +625,11 @@ export class WebRelay {
       res.writeHead(response.statusCode ?? 502, responseHeaders)
       response.pipe(res)
     })
-    upstream.on('error', (error) => { if (!res.headersSent) json(res, 502, { error: error.message }); else res.destroy(error) })
+    const clientGone = guardProxyHop(req, res, upstream)
+    upstream.on('error', (error) => {
+      if (clientGone()) return
+      if (!res.headersSent) json(res, 502, { error: error.message }); else res.destroy(error)
+    })
     req.pipe(upstream)
   }
 
@@ -605,12 +644,10 @@ export class WebRelay {
       socket.write(lines.join('\r\n'))
       if (peerHead.length) socket.write(peerHead)
       if (head.length) peer.write(head)
-      this.sockets.add(socket)
-      socket.on('close', () => { this.sockets.delete(socket); peer.destroy() })
-      peer.on('close', () => socket.destroy())
-      socket.pipe(peer).pipe(socket)
+      bridgeUpgradedSockets(socket, peer, this.sockets)
     })
     upstream.on('error', () => socket.destroy())
+    socket.once('close', () => upstream.destroy())
     upstream.end()
   }
 

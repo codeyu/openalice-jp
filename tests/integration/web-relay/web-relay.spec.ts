@@ -248,6 +248,68 @@ describe('WebRelay', () => {
     expect(JSON.parse(message)).toEqual({ type: 'connected' })
   })
 
+  it('survives clients and upstreams resetting relayed connections', async () => {
+    const runtime = await backend('dev-id', 'development')
+    openedBackends.push(runtime.server)
+    let upstreamAborted: () => void = () => undefined
+    const aborted = new Promise<void>((done) => { upstreamAborted = done })
+    const ui = createServer((req, res) => {
+      if (req.url === '/slow') { req.socket.once('close', () => upstreamAborted()); return } // never answers
+      res.end(`vite:${req.url}`)
+    })
+    const peers: import('node:net').Socket[] = []
+    const hmr = new WebSocketServer({ noServer: true })
+    ui.on('upgrade', (req, socket, head) => hmr.handleUpgrade(req, socket, head, (ws) => {
+      peers.push(socket as import('node:net').Socket)
+      ws.send('connected')
+    }))
+    await new Promise<void>((done) => ui.listen(0, '127.0.0.1', done))
+    openedBackends.push(ui)
+    const address = ui.address()
+    if (!address || typeof address === 'string') throw new Error('Missing Vite fixture port')
+    const relay = new WebRelay({ writeStartup: async () => undefined, readStartup: async () => null,
+      uiOrigin: `http://127.0.0.1:${address.port}`,
+      inspectLocal: async () => ({ machine: { key: 'local', displayName: 'This computer', projects: [{
+        key: 'dev', id: 'dev-id', displayName: 'Development', available: true,
+        runtime: { webEndpoint: `http://127.0.0.1:${runtime.port}` },
+      }] } }) as never,
+      waitReady: async () => undefined,
+    })
+    const origin = await relay.listen()
+    openedRelays.push(relay)
+    await relay.connect('local', 'dev')
+    const { connect } = await import('node:net')
+    const port = Number(new URL(origin).port)
+    const rawUpgrade = (path: string) => new Promise<import('node:net').Socket>((done, reject) => {
+      const client = connect(port, '127.0.0.1', () => client.write([
+        `GET ${path} HTTP/1.1`, `Host: 127.0.0.1:${port}`, `Origin: ${origin}`, 'Connection: Upgrade', 'Upgrade: websocket',
+        'Sec-WebSocket-Version: 13', 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==', 'Sec-WebSocket-Protocol: vite-hmr', '', '',
+      ].join('\r\n')))
+      client.on('error', () => undefined)
+      client.once('data', (chunk) => String(chunk).startsWith('HTTP/1.1 101') ? done(client) : reject(new Error(String(chunk))))
+    })
+
+    // Browser side resets an established HMR socket (page reload).
+    const first = await rawUpgrade('/?token=a')
+    first.resetAndDestroy()
+    // Upstream side resets an established HMR socket (Vite restart).
+    const second = await rawUpgrade('/?token=b')
+    await vi.waitFor(() => expect(peers).toHaveLength(2))
+    peers[1].resetAndDestroy()
+    await new Promise<void>((done) => second.once('close', () => done()))
+
+    // Browser abandons an in-flight HTTP request: the upstream hop is aborted too.
+    const pending = connect(port, '127.0.0.1', () => pending.write(`GET /slow HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\n\r\n`))
+    pending.on('error', () => undefined)
+    await new Promise((done) => setTimeout(done, 100))
+    pending.resetAndDestroy()
+    await aborted
+
+    // The relay process is still alive and serving.
+    expect(await (await fetch(`${origin}/settings`)).text()).toBe('vite:/settings')
+    expect(await (await fetch(`${origin}/api/who`)).json()).toMatchObject({ label: 'development' })
+  })
+
   it('rebuilds the selected SSH forward before a backend upgrade reports success', async () => {
     const before = await backend('cloud-id', 'before')
     const after = await backend('cloud-id', 'after')
