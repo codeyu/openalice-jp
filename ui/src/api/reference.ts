@@ -217,8 +217,55 @@ async function fetchJpBreadth(): Promise<JpBreadthResult> {
   return { ok: false, notConfigured: body.code === 'not_configured', error: body.error ?? res.statusText }
 }
 
+export interface JpRankingType {
+  type: string
+  title: string
+  subject: string
+}
+
+export interface JpMoverRow {
+  rank: number
+  code: string | null
+  name: string
+  exchange: string | null
+  category: string | null
+  price: number | null
+  change: number | null
+  changePct: number | null
+  /** Thousand shares. */
+  volume: number | null
+  /** Million yen. */
+  turnover: number | null
+  asOfTime: string | null
+  marginRatio: number | null
+}
+
+export interface JpMoversBoard {
+  date: string
+  type: JpRankingType
+  types: JpRankingType[]
+  rows: JpMoverRow[]
+  meta: ReferenceMeta
+}
+
+export type JpMoversResult =
+  | { ok: true; board: JpMoversBoard }
+  | { ok: false; notConfigured: boolean; error: string }
+
+async function fetchJpMovers(type: string): Promise<JpMoversResult> {
+  const res = await fetch(`/api/reference/jp-movers?type=${encodeURIComponent(type)}`)
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('app:unauthorized'))
+    throw new Error('Unauthorized')
+  }
+  const body = await res.json().catch(() => ({})) as { code?: string; error?: string }
+  if (res.ok) return { ok: true, board: body as unknown as JpMoversBoard }
+  return { ok: false, notConfigured: body.code === 'not_configured', error: body.error ?? res.statusText }
+}
+
 export const referenceApi = {
   jpBreadth: fetchJpBreadth,
+  jpMovers: fetchJpMovers,
   movers: () => fetchJson<MoversBoard>('/api/reference/movers'),
   calendar: () => fetchJson<CalendarBoard>('/api/reference/calendar'),
   macro: () => fetchJson<MacroBoard>('/api/reference/macro'),

@@ -5,6 +5,7 @@ import { Search } from 'lucide-react'
 import { useReferenceBoard } from '../components/market/useReferenceBoard'
 import { BoardMeta } from '../components/market/BoardMeta'
 import { JpPendingPage, MarketFocusToggle } from '../components/market/MarketFocus'
+import { JpMoversBoardView } from '../components/market/JpMoversBoard'
 import { useMarketFocus } from '../live/market-focus'
 import { PageHeader } from '../components/PageHeader'
 import { CenteredLoading } from '../components/StateViews'
@@ -33,9 +34,8 @@ interface PageProps {
 type BoardKind = PageProps['spec']['params']['board']
 
 /** Boards whose data is market-specific. Global macro and shipping are market-neutral. */
-type PendingTitleKey = 'market.boardMovers' | 'market.boardCalendar' | 'market.boardMacro' | 'market.boardTermStructure' | 'market.boardBoj'
+type PendingTitleKey = 'market.boardCalendar' | 'market.boardMacro' | 'market.boardTermStructure' | 'market.boardBoj'
 const JP_PENDING_TITLE_KEYS: Partial<Record<BoardKind, PendingTitleKey>> = {
-  movers: 'market.boardMovers',
   calendar: 'market.boardCalendar',
   macro: 'market.boardMacro',
   'term-structure': 'market.boardTermStructure',
@@ -49,7 +49,7 @@ export function MarketBoardPage({ spec }: PageProps) {
   if (focus === 'jp' && pendingTitleKey) return <JpPendingPage title={t(pendingTitleKey)} />
   switch (spec.params.board) {
     case 'movers':
-      return <MoversBoardView />
+      return focus === 'jp' ? <JpMoversBoardView /> : <MoversBoardView />
     case 'calendar':
       return <CalendarBoardView />
     case 'macro':
