@@ -6,6 +6,7 @@
  */
 
 import { fetchAndParseFeed } from './rss-parser.js'
+import { fetchAndParseHtmlList } from './html-list-parser.js'
 import { computeDedupKey, type NewsCollectorStore } from '../store.js'
 import type { RSSFeedConfig } from '../types.js'
 import type { NewsRecord } from '../types.js'
@@ -103,7 +104,9 @@ export class NewsCollector {
 
   /** Fetch a single feed and ingest its items. */
   private async fetchFeed(feed: RSSFeedConfig): Promise<{ fetched: number; ingested: number }> {
-    const items = await fetchAndParseFeed(feed.url)
+    const isHtml = feed.kind === 'html'
+    if (isHtml && !feed.html) throw new Error('html feed is missing its html.linkPattern config')
+    const items = isHtml ? await fetchAndParseHtmlList(feed.url, feed.html!) : await fetchAndParseFeed(feed.url)
     let ingested = 0
 
     for (const item of items) {
@@ -123,7 +126,7 @@ export class NewsCollector {
           source: feed.source,
           link: item.link,
           guid: item.guid,
-          ingestSource: 'rss',
+          ingestSource: isHtml ? 'html' : 'rss',
           dedupKey,
           ...(feed.categories ? { categories: feed.categories.join(',') } : {}),
           ...(item.image ? { image: item.image } : {}),

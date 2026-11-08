@@ -8,6 +8,7 @@ export const NEWS_CATEGORIES = [
   { id: 'hk', labelKey: 'news.categoryHk', tags: ['hk', 'hong-kong', 'hong kong'] },
   { id: 'china-concepts', labelKey: 'news.categoryChinaConcepts', tags: ['china-concept', 'china-concepts', 'chinese-adr'] },
   { id: 'us', labelKey: 'news.categoryUs', tags: ['us', 'usa', 'united-states', 'wall-street'] },
+  { id: 'jp', labelKey: 'news.categoryJp', tags: ['jp', 'japan', 'nikkei', 'topix', 'tse'] },
   { id: 'ipo', labelKey: 'news.categoryIpo', tags: ['ipo', 'new-listing', 'new-stock'] },
   { id: 'industries', labelKey: 'news.categoryIndustries', tags: ['industry', 'industries', 'sector', 'sectors'] },
   { id: 'funds', labelKey: 'news.categoryFunds', tags: ['fund', 'funds', 'etf'] },
@@ -23,7 +24,7 @@ export const NEWS_CATEGORIES = [
 export type NewsCategoryId = typeof NEWS_CATEGORIES[number]['id']
 
 export const NEWS_CATEGORY_GROUPS = [
-  { labelKey: 'news.groupEquities', categories: ['a-shares', 'chinext', 'star', 'bse', 'neeq', 'hk', 'us'] },
+  { labelKey: 'news.groupEquities', categories: ['jp', 'us'] },
   { labelKey: 'news.groupTopics', categories: ['themes', 'industries', 'ipo', 'china-concepts'] },
   { labelKey: 'news.groupAssets', categories: ['funds', 'bonds', 'futures', 'fx', 'options', 'warrants'] },
   { labelKey: 'news.groupMacro', categories: ['macro', 'wealth'] },

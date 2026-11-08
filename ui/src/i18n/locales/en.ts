@@ -2848,6 +2848,7 @@ export const en = {
     categoryHk: 'Hong Kong Stocks',
     categoryChinaConcepts: 'China Concepts',
     categoryUs: 'US Stocks',
+    categoryJp: 'Japanese Stocks',
     categoryIpo: 'New Listings',
     categoryIndustries: 'Industries',
     categoryFunds: 'Funds',

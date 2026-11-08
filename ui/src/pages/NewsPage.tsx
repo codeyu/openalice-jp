@@ -37,7 +37,7 @@ const NEWS_TAG_DEFINITIONS = new Map<string, typeof NEWS_VIEWS[number] | typeof 
   [...NEWS_VIEWS, ...NEWS_CATEGORIES].flatMap((definition) => definition.tags.map((tag) => [tag, definition] as const)),
 )
 const MARKET_FLAGS: Partial<Record<string, string>> = {
-  'a-shares': 'cn', hk: 'hk', us: 'us',
+  'a-shares': 'cn', hk: 'hk', us: 'us', jp: 'jp',
 }
 
 export function NewsPage({ spec }: { spec: Extract<ViewSpec, { kind: 'news' }> }) {

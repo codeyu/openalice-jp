@@ -34,10 +34,26 @@ export interface RSSFeedConfig {
   description?: string
   /** Whether this feed is actively fetched. Defaults to true when absent. */
   enabled?: boolean
+  /** `rss` (default) parses RSS/Atom; `html` reads headline links from a public list page. */
+  kind?: 'rss' | 'html'
+  /** Required when `kind` is `html`. */
+  html?: HtmlListConfig
+}
+
+/** How to find article links on an HTML list page (headlines + links only). */
+export interface HtmlListConfig {
+  /** Regex matched against an anchor's resolved `pathname + search` on the page's own origin. */
+  linkPattern: string
+  /** Optional regex with named groups y, m, d (and optional H, M) to date an item from its URL, read as JST. */
+  linkDatePattern?: string
+  /** Shorter anchor texts (e.g. "read more") are ignored. Default 6. */
+  minTitleLength?: number
+  /** Cap per fetch. Default 40. */
+  maxItems?: number
 }
 
 /** Discriminator for how a news item was ingested */
-export type IngestSource = 'rss'
+export type IngestSource = 'rss' | 'html'
 
 // ==================== News Provider Interface ====================
 

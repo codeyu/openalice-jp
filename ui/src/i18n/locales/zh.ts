@@ -2812,6 +2812,7 @@ export const zh: Resources = {
     categoryHk: '港股',
     categoryChinaConcepts: '中概股',
     categoryUs: '美股',
+    categoryJp: '日本股票',
     categoryIpo: '新股',
     categoryIndustries: '行业',
     categoryFunds: '基金',

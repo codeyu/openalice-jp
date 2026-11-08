@@ -6,6 +6,19 @@
 
 import { z } from 'zod'
 
+import { JP_NEWS_FEEDS } from './jp-feeds.js'
+
+const htmlListSchema = z.object({
+  linkPattern: z.string().min(1).refine(isValidRegex, 'linkPattern must be a valid regular expression'),
+  linkDatePattern: z.string().refine(isValidRegex, 'linkDatePattern must be a valid regular expression').optional(),
+  minTitleLength: z.number().int().positive().optional(),
+  maxItems: z.number().int().positive().max(200).optional(),
+})
+
+function isValidRegex(pattern: string): boolean {
+  try { new RegExp(pattern); return true } catch { return false }
+}
+
 const feedSchema = z.object({
   name: z.string(),
   url: z.string().url(),
@@ -13,6 +26,12 @@ const feedSchema = z.object({
   categories: z.array(z.string()).optional(),
   description: z.string().optional(),
   enabled: z.boolean().default(true),
+  /** `rss` (default) or `html` — headline links scraped from a public list page. */
+  kind: z.enum(['rss', 'html']).optional(),
+  html: htmlListSchema.optional(),
+}).refine((feed) => feed.kind !== 'html' || feed.html !== undefined, {
+  message: 'html feeds need an html.linkPattern',
+  path: ['html'],
 })
 
 export const newsCollectorSchema = z.object({
@@ -265,6 +284,9 @@ export const newsCollectorSchema = z.object({
       description: 'Crypto and web3 news.',
       enabled: false,
     },
+
+    // ---------- Japan (RSS + public headline list pages) ----------
+    ...JP_NEWS_FEEDS,
   ]),
 })
 

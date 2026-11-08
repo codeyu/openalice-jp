@@ -2809,6 +2809,7 @@ export const ja: Resources = {
     categoryHk: '香港株',
     categoryChinaConcepts: '中国関連株',
     categoryUs: '米国株',
+    categoryJp: '日本株',
     categoryIpo: '新規上場',
     categoryIndustries: '業種',
     categoryFunds: 'ファンド',

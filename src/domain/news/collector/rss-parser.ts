@@ -65,7 +65,8 @@ export function parseRSSXml(xml: string): ParsedFeedItem[] {
       pubDate: parseDate(
         extractTag(block, 'pubDate')
         ?? extractTag(block, 'published')
-        ?? extractTag(block, 'updated'),
+        ?? extractTag(block, 'updated')
+        ?? extractTag(block, 'dc:date'),
       ),
       ...(image ? { image } : {}),
     })
@@ -203,7 +204,8 @@ function extractAttr(xml: string, tag: string, attr: string): string | null {
  */
 function parseDate(dateStr: string | null): Date | null {
   if (!dateStr) return null
-  const d = new Date(dateStr)
+  // RFC 822 only standardises US zone names; Japanese feeds often write "JST".
+  const d = new Date(dateStr.replace(/\s+JST$/i, ' +0900'))
   return isNaN(d.getTime()) ? null : d
 }
 

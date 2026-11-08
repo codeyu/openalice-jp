@@ -109,6 +109,15 @@ describe('parseRSSXml', () => {
     expect(items[0].pubDate).toBeNull()
   })
 
+  it('dates RSS 1.0 (RDF) items from dc:date and reads JST pubDates', () => {
+    const xml = `<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <item rdf:about="https://example.jp/a"><title>朝日の記事</title><link>https://example.jp/a</link><dc:date>2026-11-08T13:00:00+09:00</dc:date></item>
+  <item rdf:about="https://example.jp/b"><title>金融庁の公表</title><link>https://example.jp/b</link><pubDate>Fri, 06 Nov 2026 18:15:00 JST</pubDate></item>
+</rdf:RDF>`
+    const items = parseRSSXml(xml)
+    expect(items.map((item) => item.pubDate?.toISOString())).toEqual(['2026-11-08T04:00:00.000Z', '2026-11-06T09:15:00.000Z'])
+  })
+
   it('returns empty array for non-feed XML', () => {
     expect(parseRSSXml('<html><body>Not a feed</body></html>')).toEqual([])
     expect(parseRSSXml('')).toEqual([])
