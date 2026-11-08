@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { computeBreadth, fetchJpBreadth } from './breadth.js'
 import { kabuDbGet, kabuDbGetAll, kabuDbUrl } from './kabu-db.js'
-import { createJpBreadthCache, kabuReadToken } from '../../../webui/routes/reference.js'
+import { createJpMarketData, JpNotConfiguredError, kabuReadToken } from './service.js'
 
 describe('kabuReadToken', () => {
   it('prefers a dedicated DB token, else falls back to the read-only gateway token', () => {
@@ -89,16 +89,24 @@ describe('fetchJpBreadth', () => {
   })
 })
 
-describe('jp breadth cache', () => {
-  it('reuses a result for the same config and reloads when the token changes or a load fails', async () => {
+describe('jp market data service', () => {
+  it('reuses breadth for the same config and reloads when the token changes or a load fails', async () => {
     const board = { date: 'd' } as never
-    const load = vi.fn().mockRejectedValueOnce(new Error('down')).mockResolvedValue(board)
-    const cache = createJpBreadthCache(load, 60_000)
-    await expect(cache.get(cfg)).rejects.toThrow('down')
-    await expect(cache.get(cfg)).resolves.toBe(board)
-    await cache.get(cfg)
-    expect(load).toHaveBeenCalledTimes(2)
-    await cache.get({ ...cfg, token: 'other' })
-    expect(load).toHaveBeenCalledTimes(3)
+    const loadBreadth = vi.fn().mockRejectedValueOnce(new Error('down')).mockResolvedValue(board)
+    let current = cfg
+    const service = createJpMarketData({ readConfig: async () => current, loadBreadth })
+    await expect(service.breadth()).rejects.toThrow('down')
+    await expect(service.breadth()).resolves.toBe(board)
+    await service.breadth()
+    expect(loadBreadth).toHaveBeenCalledTimes(2)
+    current = { ...cfg, token: 'other' }
+    await service.breadth()
+    expect(loadBreadth).toHaveBeenCalledTimes(3)
+  })
+
+  it('reports a missing config as a typed not-configured error', async () => {
+    const service = createJpMarketData({ readConfig: async () => null })
+    expect(await service.isConfigured()).toBe(false)
+    await expect(service.breadth()).rejects.toBeInstanceOf(JpNotConfiguredError)
   })
 })

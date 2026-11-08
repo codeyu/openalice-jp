@@ -173,4 +173,7 @@ export interface BarServiceDeps {
   utaManager: UtaBarGateway
   /** Configured default provider per asset class — the `provider` we report. */
   vendorProviders: Record<AssetClass, string>
+  /** Optional `kabu|<TSE code>` source: split-adjusted 1d/1w bars from the
+   *  user's kabu gateway database. Absent ⇒ `kabu` barIds fail loudly. */
+  kabuBars?: (symbol: string, opts: { interval: '1d' | '1w'; count?: number; start?: string; end?: string }) => Promise<OhlcvBar[]>
 }

@@ -19,6 +19,11 @@ alice market search-bars --query AAPL
 alice market bars --bar-id 'yfinance|AAPL' --interval 1d --count 300 --output bars.json
 ```
 
+Japanese stocks: prefer `kabu|<TSE code>` (e.g. `kabu|7203`, `kabu|130A`) when the
+user's kabu gateway is configured — split-adjusted daily (`1d`) or weekly (`1w`)
+end-of-day bars from 1983 onward, each with `rawClose` (unadjusted) and
+`turnover` (yen). Use `yfinance|7203.T` only as a fallback or for intraday.
+
 Copy an exact `barId` from search results. It identifies a source as well as an
 instrument: two feeds for the same symbol are different series. Do not rewrite
 native symbols or guess broker account IDs. If source discovery is empty,

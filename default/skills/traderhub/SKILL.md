@@ -51,6 +51,25 @@ Every payload carries `meta`: `origin` ("hub" = hosted TraderHub, "local" =
 this instance's own keys), `stale: true` = upstream refresh failed, you're
 seeing the last good snapshot — say so if it matters to the conclusion.
 
+## Japan market (the user's kabu gateway)
+
+The boards above are US-centric. For Japanese equities read these first:
+
+```bash
+traderhub japan breadth                       # advancers/decliners + TSE 33 industries (equal-weight)
+traderhub japan ranking-types                 # every ranking id with its Japanese title
+traderhub japan ranking --type gain           # also loss, volume, turnover, volume_surge,
+traderhub japan ranking --type sector_loss --limit 33   # stop_high/low, weekly_*, credit_*, sector_*
+```
+
+Values are the latest stored trading day (end of day), not intraday. Volume
+is in thousand shares, trading value in million yen. Breadth sectors are
+equal-weight averages; `sector_gain` / `sector_loss` are the official
+cap-weighted TSE 33-industry indices — they can differ a lot when large caps
+move. "not configured" means the user has not set the kabu gateway in
+Settings → Market Data; say so instead of guessing. Japanese K-lines:
+`market-data` skill (`kabu|<code>`).
+
 ## Equity fundamentals
 
 ```bash

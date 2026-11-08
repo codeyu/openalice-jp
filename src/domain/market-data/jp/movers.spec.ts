@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { fetchJpMovers, fetchJpRankingTypes, stripIndexPrefix, toMoverRow } from './movers.js'
-import { createKeyedCache } from '../../../webui/routes/reference.js'
+import { createKeyedCache } from './service.js'
 
 const cfg = { baseUrl: 'https://gw.example.com', token: 'read-only' }
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })

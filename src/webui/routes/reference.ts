@@ -8,60 +8,14 @@
  * way out).
  */
 
-import { createHash } from 'node:crypto'
 import { Hono } from 'hono'
 import type { EngineContext } from '../../core/types.js'
-import { readMarketDataConfig } from '../../core/config.js'
-import { fetchJpBreadth, type JpBreadthBoard } from '../../domain/market-data/jp/breadth.js'
-import type { KabuDbConfig } from '../../domain/market-data/jp/kabu-db.js'
-import { fetchJpMovers, fetchJpRankingTypes, type JpMoversBoard, type JpRankingType } from '../../domain/market-data/jp/movers.js'
+import { jpMarketData, JpNotConfiguredError } from '../../domain/market-data/jp/service.js'
 
-const JP_BREADTH_TTL_MS = 10 * 60_000
-const JP_MOVERS_TTL_MS = 5 * 60_000
-const JP_RANKING_TYPES_TTL_MS = 60 * 60_000
-
-/** Cache identity for one gateway config; hashes the token so a new token never reuses old data. */
-function configKey(cfg: KabuDbConfig): string {
-  return `${cfg.baseUrl}#${createHash('sha256').update(cfg.token).digest('hex')}`
-}
-
-/** Small TTL cache of in-flight/settled loads; a failed load is evicted so the next call retries. */
-export function createKeyedCache<T>(ttlMs: number) {
-  const entries = new Map<string, { at: number; value: Promise<T> }>()
-  return {
-    get(key: string, load: () => Promise<T>): Promise<T> {
-      const hit = entries.get(key)
-      if (hit && Date.now() - hit.at < ttlMs) return hit.value
-      const value = load()
-      entries.set(key, { at: Date.now(), value })
-      value.catch(() => { if (entries.get(key)?.value === value) entries.delete(key) })
-      return value
-    },
-  }
-}
-
-/** Per-config breadth cache. */
-export function createJpBreadthCache(load: (cfg: KabuDbConfig) => Promise<JpBreadthBoard> = fetchJpBreadth, ttlMs = JP_BREADTH_TTL_MS) {
-  const cache = createKeyedCache<JpBreadthBoard>(ttlMs)
-  return { get: (cfg: KabuDbConfig) => cache.get(configKey(cfg), () => load(cfg)) }
-}
-
-const jpBreadthCache = createJpBreadthCache()
-const jpRankingTypesCache = createKeyedCache<JpRankingType[]>(JP_RANKING_TYPES_TTL_MS)
-const jpMoversCache = createKeyedCache<JpMoversBoard>(JP_MOVERS_TTL_MS)
-
-/** Token for read-only kabu calls: a dedicated DB token wins, else the read-only gateway token. */
-export function kabuReadToken(keys: { kabuDb?: string; kabuGateway?: string }): string | undefined {
-  return keys.kabuDb?.trim() || keys.kabuGateway?.trim() || undefined
-}
-
-const NOT_CONFIGURED = { error: 'kabu gateway URL and read-only token are not configured (Settings → Market Data).', code: 'not_configured' } as const
-
-async function kabuConfig(): Promise<KabuDbConfig | null> {
-  const md = await readMarketDataConfig()
-  const baseUrl = md.kabu.baseUrl.trim()
-  const token = kabuReadToken(md.providerKeys)
-  return baseUrl && token ? { baseUrl, token } : null
+/** 409 for a missing kabu config (the UI offers Settings), 502 for upstream failures. */
+function jpError(err: unknown): { body: { error: string; code?: string }; status: 409 | 502 } {
+  if (err instanceof JpNotConfiguredError) return { body: { error: err.message, code: err.code }, status: 409 }
+  return { body: { error: err instanceof Error ? err.message : String(err) }, status: 502 }
 }
 
 export function createReferenceRoutes(ctx: EngineContext): Hono {
@@ -70,27 +24,22 @@ export function createReferenceRoutes(ctx: EngineContext): Hono {
   // GET /api/reference/jp-breadth → Japan advancers/decliners + TSE 33-industry sectors
   // from the user's self-hosted kabu gateway database (read-only DB token).
   app.get('/jp-breadth', async (c) => {
-    const cfg = await kabuConfig()
-    if (!cfg) return c.json(NOT_CONFIGURED, 409)
     try {
-      return c.json(await jpBreadthCache.get(cfg))
+      return c.json(await jpMarketData.breadth())
     } catch (err) {
-      return c.json({ error: err instanceof Error ? err.message : String(err) }, 502)
+      const { body, status } = jpError(err)
+      return c.json(body, status)
     }
   })
 
   // GET /api/reference/jp-movers?type=gain → latest stored kabu ranking of that type
   app.get('/jp-movers', async (c) => {
-    const cfg = await kabuConfig()
-    if (!cfg) return c.json(NOT_CONFIGURED, 409)
     const type = (c.req.query('type') ?? 'gain').trim()
     try {
-      const key = configKey(cfg)
-      const types = await jpRankingTypesCache.get(key, () => fetchJpRankingTypes(cfg))
-      if (!types.some((t) => t.type === type)) return c.json({ error: `unknown ranking type: ${type}`, types }, 400)
-      return c.json(await jpMoversCache.get(`${key}|${type}`, () => fetchJpMovers(cfg, type, types)))
+      return c.json(await jpMarketData.movers(type))
     } catch (err) {
-      return c.json({ error: err instanceof Error ? err.message : String(err) }, 502)
+      const { body, status } = jpError(err)
+      return c.json(body, String(body.error).startsWith('unknown ranking type') ? 400 : status)
     }
   })
 

@@ -49,6 +49,8 @@ import { createBarService } from './domain/market-data/bars/index.js'
 import { createReferenceData } from './domain/market-data/reference/service.js'
 import { createSectorRotationTools } from './tool/sector-rotation.js'
 import { createReferenceBoardTools } from './tool/reference-board.js'
+import { createJapanMarketTools } from './tool/japan-market.js'
+import { jpMarketData } from './domain/market-data/jp/service.js'
 import { createDerivativesTools } from './tool/derivatives.js'
 import { createIndexTools } from './tool/indices.js'
 import { createEconomyTools } from './tool/economy.js'
@@ -225,6 +227,8 @@ async function main() {
     commodityClient,
     utaManager,
     vendorProviders: config.marketData.providers,
+    // `kabu|7203`: split-adjusted EOD bars from the user's kabu gateway (read-only token).
+    kabuBars: (symbol, opts) => jpMarketData.bars(symbol, opts),
   })
 
   // Hub-first calendars: tools, CLI and boards all inherit through the
@@ -258,6 +262,7 @@ async function main() {
   toolCenter.register(createMarketSearchTools(marketSearch), 'market-search')
   toolCenter.register(createVendorTools(getSDKExecutor()), 'market-vendors')
   toolCenter.register(createReferenceBoardTools(reference), 'market-board')
+  toolCenter.register(createJapanMarketTools(), 'japan-market')
   toolCenter.register(createEquityTools(equityClient), 'equity')
   if (etfClient) {
     toolCenter.register(createEtfTools(etfClient), 'etf')

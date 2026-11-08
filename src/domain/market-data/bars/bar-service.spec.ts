@@ -443,3 +443,36 @@ it('refuses ambiguous catalogs and never substitutes another provider', async ()
   await expect(svc.getBars({ barId: 'unavailable|AAPL' }, { interval: '1d' })).rejects.toThrow(/Cannot uniquely resolve/)
   expect(deps.equityClient.getHistorical).not.toHaveBeenCalled()
 })
+
+describe('kabu bar source', () => {
+  const kabuRows = [
+    { date: '2026-11-05', open: 3400, high: 3450, low: 3380, close: 3420, volume: 1000 },
+    { date: '2026-11-06', open: 3300, high: 3350, low: 3200, close: 3338, volume: 2000 },
+  ]
+
+  it('routes kabu|<code> barIds to the kabu source with the requested window', async () => {
+    const kabuBars = vi.fn(async () => kabuRows)
+    const deps = makeDeps({ kabuBars })
+    const svc = createBarService(deps)
+    const res = await svc.getBars({ barId: 'kabu|7203' }, { interval: '1d', count: 2, end: '2026-11-06' })
+    expect(kabuBars).toHaveBeenCalledWith('7203', { interval: '1d', count: 2, end: '2026-11-06' })
+    expect(res.bars.map((b) => b.close)).toEqual([3420, 3338])
+    expect(res.meta).toMatchObject({ sourceId: 'kabu', barId: 'kabu|7203', provider: 'kabu', source: 'vendor' })
+    expect(deps.equityClient.getHistorical).not.toHaveBeenCalled()
+  })
+
+  it('refuses intraday intervals and a missing kabu source loudly', async () => {
+    await expect(createBarService(makeDeps({ kabuBars: vi.fn() })).getBars({ barId: 'kabu|7203' }, { interval: '1h' }))
+      .rejects.toThrow('kabu supplies 1d and 1w bars only')
+    await expect(createBarService(makeDeps()).getBars({ barId: 'kabu|7203' }, { interval: '1d' }))
+      .rejects.toThrow('kabu bar source is not available')
+  })
+
+  it('lets a UTA with the same id keep its own routing', async () => {
+    const getUta = vi.fn(async () => undefined)
+    const kabuBars = vi.fn(async () => kabuRows)
+    const svc = createBarService(makeDeps({ kabuBars, utaManager: { has: async () => true, get: getUta, searchContracts: async () => [] } }))
+    await expect(svc.getBars({ barId: 'kabu|7203' }, { interval: '1d' })).rejects.toThrow()
+    expect(kabuBars).not.toHaveBeenCalled()
+  })
+})

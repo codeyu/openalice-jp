@@ -36,7 +36,11 @@ const VENDOR_CAPABILITY: Record<string, BarCapability> = {
   fmp: 'delayed',
   eastmoney: 'delayed',
   twse: 'delayed', // K-lines via Yahoo chart (symbols are .TW/.TWO)
+  kabu: 'delayed', // end-of-day bars stored by the user's kabu gateway
 }
+
+/** Bar source id served by the user's kabu gateway database. */
+export const KABU_SOURCE_ID = 'kabu'
 
 const BAR_INTERVALS: readonly BarInterval[] = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w']
 
@@ -259,6 +263,39 @@ export function createBarService(deps: BarServiceDeps): BarService {
     }
   }
 
+  // -------- kabu gateway database fetch --------
+  async function getKabuBars(symbol: string, opts: GetBarsOpts): Promise<BarsResult> {
+    if (!deps.kabuBars) throw new Error('kabu bar source is not available (configure the kabu gateway in Settings → Market Data)')
+    if (opts.interval !== '1d' && opts.interval !== '1w') {
+      throw new Error(`kabu supplies 1d and 1w bars only (got ${opts.interval}); request 1d and aggregate locally`)
+    }
+    const end = opts.end ?? opts.asOf
+    const raw = await deps.kabuBars(symbol, {
+      interval: opts.interval,
+      ...(opts.count != null ? { count: opts.count } : {}),
+      ...(opts.start ? { start: opts.start } : {}),
+      ...(end ? { end } : {}),
+    })
+    const quality = inspectBarQuality(raw)
+    const bars = raw.filter(isFullBar) as OhlcvBar[]
+    const filtered = finalize(bars, opts.count)
+    return {
+      bars: filtered,
+      meta: buildMeta(symbol, filtered, {
+        quality,
+        interval: opts.interval,
+        limit: MAX_BARS,
+        truncatedRows: Math.max(0, bars.length - MAX_BARS),
+        source: 'vendor',
+        sourceId: KABU_SOURCE_ID,
+        barId: formatBarId(KABU_SOURCE_ID, symbol),
+        provider: KABU_SOURCE_ID,
+        barCapability: VENDOR_CAPABILITY[KABU_SOURCE_ID],
+        ...computeFreshness(filtered[filtered.length - 1]?.date ?? '', opts, () => new Date(), filtered[0]?.date ?? '', VENDOR_CAPABILITY[KABU_SOURCE_ID]),
+      }),
+    }
+  }
+
   // -------- uta (broker) fetch --------
   async function getUtaBars(sourceId: string, barId: string, opts: GetBarsOpts): Promise<BarsResult> {
     const acct = await deps.utaManager.get(sourceId)
@@ -425,6 +462,7 @@ export function createBarService(deps: BarServiceDeps): BarService {
       if (!parsed) throw new Error(`Invalid barId "${ref.barId}" (expected "sourceId|nativeSymbol")`)
       const isUta = await deps.utaManager.has(parsed.sourceId)
       if (isUta) return getUtaBars(parsed.sourceId, ref.barId, opts)
+      if (parsed.sourceId === KABU_SOURCE_ID) return getKabuBars(parsed.nativeSymbol, opts)
       // References carry source identity only. Resolve an exact catalog match,
       // never a fuzzy hit or an equity fallback. Explicit hints remain supported.
       let assetClass = ref.assetClass

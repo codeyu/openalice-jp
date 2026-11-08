@@ -64,6 +64,7 @@ const BASE_EXPORTS: Record<string, CliExport> = {
     description: 'Low-frequency market data — boards, fundamentals, macro, calendars (TraderHub-first)',
     groupDescriptions: {
       board: 'Read finished market boards and sector rotation',
+      japan: 'Japan market breadth, TSE 33-industry moves and rankings from the user\'s kabu gateway',
       equity: 'Read company profiles, fundamentals, estimates, and calendars',
       etf: 'Search ETFs and inspect holdings or sector exposure',
       economy: 'Read US and euro-area macro series',
@@ -77,6 +78,11 @@ const BASE_EXPORTS: Record<string, CliExport> = {
       board: {
         get: 'marketGetBoard',
         rotation: 'sectorRotation',
+      },
+      japan: {
+        breadth: 'japanMarketBreadth',
+        'ranking-types': 'japanRankingTypes',
+        ranking: 'japanRanking',
       },
       equity: {
         profile: 'equityGetProfile',
