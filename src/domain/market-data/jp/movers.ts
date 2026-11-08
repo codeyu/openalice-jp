@@ -59,14 +59,21 @@ interface RankingRow {
 
 const TYPE_PATTERN = /^[a-z][a-z0-9_]{0,40}$/
 
+/** kabu labels TSE 33-industry indices "IS 食料"; the prefix is noise for a reader. */
+export function stripIndexPrefix(name: string | null): string | null {
+  return name == null ? null : name.replace(/^IS[\s　]+/, '')
+}
+
 export function toMoverRow(r: RankingRow): JpMoverRow {
   const ratio = r.extras?.['Ratio']
+  const sector = r.stock_code == null
+  const name = r.stock_name ?? r.category_name ?? ''
   return {
     rank: r.rank_no,
     code: r.stock_code,
-    name: r.stock_name ?? r.category_name ?? '',
+    name: sector ? stripIndexPrefix(name) ?? '' : name,
     exchange: r.exchange_name,
-    category: r.category_name,
+    category: sector ? stripIndexPrefix(r.category_name) : r.category_name,
     price: r.price,
     change: r.change_ratio,
     changePct: r.change_pct,

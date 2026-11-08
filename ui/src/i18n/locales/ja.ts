@@ -2192,7 +2192,7 @@ export const ja: Resources = {
       decliners: '値下がり',
       unchanged: '変わらず',
       total: '計 {{total}} 銘柄',
-      sectorsTitle: 'TOPIX-17業種（単純平均騰落率）',
+      sectorsTitle: '東証33業種（単純平均騰落率）',
       notConfigured: 'kabu ゲートウェイ（URL と読み取り専用トークン）を設定すると、騰落状況と業種別の動きを表示します。',
       loadFailed: '騰落状況を取得できませんでした: {{error}}',
       openSettings: 'マーケットデータ設定を開く',

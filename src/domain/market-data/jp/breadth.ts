@@ -1,5 +1,5 @@
 /**
- * Japan market breadth board — advancers/decliners and TOPIX-17 sector moves
+ * Japan market breadth board — advancers/decliners and TSE 33-industry moves
  * for the latest trading day, computed from the kabu gateway's daily bars.
  *
  * Daily changes use `adjusted_close` (falling back to `close`) for both days so
@@ -26,21 +26,21 @@ export interface JpBreadthBoard {
 }
 
 interface DailyRow { stock_code: string; close: number | null; adjusted_close: number | null }
-interface StockRow { stock_code: string; sector_17_name: string | null }
+interface StockRow { stock_code: string; sector_33_name: string | null }
 
 const day = (ts: string) => ts.slice(0, 10)
 const price = (r: DailyRow) => r.adjusted_close ?? r.close
 
 /** Pure aggregation, separated from I/O for tests. */
 export function computeBreadth(latest: DailyRow[], prev: DailyRow[], stocks: StockRow[]): Pick<JpBreadthBoard, 'breadth' | 'sectors'> {
-  const sectorOf = new Map(stocks.map((s) => [s.stock_code, s.sector_17_name]))
+  const sectorOf = new Map(stocks.map((s) => [s.stock_code, s.sector_33_name]))
   const prevPrice = new Map(prev.map((r) => [r.stock_code, price(r)]))
   const breadth = { advancers: 0, decliners: 0, unchanged: 0, total: 0 }
   const sectors = new Map<string, { sum: number; advancers: number; decliners: number; count: number }>()
 
   for (const row of latest) {
     const sector = sectorOf.get(row.stock_code)
-    if (!sector) continue // ETFs, REITs and codes without a TOPIX-17 sector are not equities here
+    if (!sector) continue // ETFs, REITs and codes without a TSE 33-industry sector are not equities here
     const now = price(row)
     const before = prevPrice.get(row.stock_code)
     if (now == null || before == null || !(now > 0) || !(before > 0)) continue
@@ -75,7 +75,7 @@ export async function fetchJpBreadth(cfg: KabuDbConfig, fetchImpl?: FetchLike, n
   const [latest, prev, stocks] = await Promise.all([
     kabuDbGetAll<DailyRow>(cfg, `ohlcv_daily?${cols}&ts=eq.${encodeURIComponent(latestTs.ts)}&order=stock_code`, fetchImpl),
     kabuDbGetAll<DailyRow>(cfg, `ohlcv_daily?${cols}&ts=eq.${encodeURIComponent(prevTs.ts)}&order=stock_code`, fetchImpl),
-    kabuDbGetAll<StockRow>(cfg, 'stocks?select=stock_code,sector_17_name&sector_17_name=not.is.null&order=stock_code', fetchImpl),
+    kabuDbGetAll<StockRow>(cfg, 'stocks?select=stock_code,sector_33_name&sector_33_name=not.is.null&order=stock_code', fetchImpl),
   ])
 
   return {

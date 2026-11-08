@@ -2231,7 +2231,7 @@ export const en = {
       decliners: 'Down',
       unchanged: 'Flat',
       total: '{{total}} stocks',
-      sectorsTitle: 'TOPIX-17 sectors (equal-weight average change)',
+      sectorsTitle: 'TSE 33 industries (equal-weight average change)',
       notConfigured: 'Connect your kabu gateway (URL and read-only token) to see market breadth and sector moves.',
       loadFailed: 'Could not load market breadth: {{error}}',
       openSettings: 'Open Market Data settings',

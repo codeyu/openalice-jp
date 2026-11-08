@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchJpMovers, fetchJpRankingTypes, toMoverRow } from './movers.js'
+import { fetchJpMovers, fetchJpRankingTypes, stripIndexPrefix, toMoverRow } from './movers.js'
 import { createKeyedCache } from '../../../webui/routes/reference.js'
 
 const cfg = { baseUrl: 'https://gw.example.com', token: 'read-only' }
@@ -23,7 +23,13 @@ describe('jp movers', () => {
     expect(toMoverRow({
       trade_date: '2026-11-06', rank_no: 1, stock_code: null, stock_name: null, exchange_name: null, category_name: 'IS 食料',
       price: 2802.92, change_ratio: -311.97, change_pct: -10.02, volume: null, turnover: null, as_of_time: '15:30', extras: null,
-    }).name).toBe('IS 食料')
+    }).name).toBe('食料')
+    // Only index rows lose the prefix; a stock whose name starts with "IS" keeps it.
+    expect(toMoverRow({
+      trade_date: '2026-11-06', rank_no: 1, stock_code: '9999', stock_name: 'IS テスト', exchange_name: '東証プ', category_name: 'IS 業種',
+      price: 1, change_ratio: 0, change_pct: 0, volume: null, turnover: null, as_of_time: null, extras: null,
+    })).toMatchObject({ name: 'IS テスト', category: 'IS 業種' })
+    expect(stripIndexPrefix('IS　精密')).toBe('精密')
   })
 
   it('reads ranking types and the latest stored date for the requested type', async () => {

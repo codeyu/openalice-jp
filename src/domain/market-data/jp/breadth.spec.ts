@@ -19,12 +19,12 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('computeBreadth', () => {
-  it('counts advancers/decliners on split-adjusted prices and averages TOPIX-17 sectors', () => {
+  it('counts advancers/decliners on split-adjusted prices and averages TSE 33 industries', () => {
     const stocks = [
-      { stock_code: '7203', sector_17_name: '自動車・輸送機' },
-      { stock_code: '7267', sector_17_name: '自動車・輸送機' },
-      { stock_code: '8306', sector_17_name: '銀行' },
-      { stock_code: '9984', sector_17_name: '情報通信・サービスその他' },
+      { stock_code: '7203', sector_33_name: '輸送用機器' },
+      { stock_code: '7267', sector_33_name: '輸送用機器' },
+      { stock_code: '8306', sector_33_name: '銀行業' },
+      { stock_code: '9984', sector_33_name: '情報・通信業' },
     ]
     const prev = [
       { stock_code: '7203', close: 3000, adjusted_close: 3000 },
@@ -44,9 +44,9 @@ describe('computeBreadth', () => {
     const { breadth, sectors } = computeBreadth(latest, prev, stocks)
     expect(breadth).toEqual({ advancers: 1, decliners: 1, unchanged: 2, total: 4 })
     expect(sectors).toEqual([
-      { name: '自動車・輸送機', avgChangePct: 5, advancers: 1, decliners: 0, count: 2 },
-      { name: '情報通信・サービスその他', avgChangePct: 0, advancers: 0, decliners: 0, count: 1 },
-      { name: '銀行', avgChangePct: -10, advancers: 0, decliners: 1, count: 1 },
+      { name: '輸送用機器', avgChangePct: 5, advancers: 1, decliners: 0, count: 2 },
+      { name: '情報・通信業', avgChangePct: 0, advancers: 0, decliners: 0, count: 1 },
+      { name: '銀行業', avgChangePct: -10, advancers: 0, decliners: 1, count: 1 },
     ])
   })
 })
@@ -78,7 +78,7 @@ describe('fetchJpBreadth', () => {
     const prevTs = '2026-11-05T00:00:00+09:00'
     const fetchImpl = vi.fn(async (url: string) => {
       const u = new URL(url)
-      if (u.pathname.endsWith('/stocks')) return jsonResponse([{ stock_code: '7203', sector_17_name: '自動車・輸送機' }])
+      if (u.pathname.endsWith('/stocks')) return jsonResponse([{ stock_code: '7203', sector_33_name: '輸送用機器' }])
       if (u.searchParams.get('select') === 'ts') return jsonResponse(u.searchParams.get('ts') ? [{ ts: prevTs }] : [{ ts: latestTs }])
       const close = u.searchParams.get('ts') === `eq.${latestTs}` ? 110 : 100
       return jsonResponse([{ stock_code: '7203', close, adjusted_close: close }])

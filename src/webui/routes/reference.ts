@@ -67,7 +67,7 @@ async function kabuConfig(): Promise<KabuDbConfig | null> {
 export function createReferenceRoutes(ctx: EngineContext): Hono {
   const app = new Hono()
 
-  // GET /api/reference/jp-breadth → Japan advancers/decliners + TOPIX-17 sectors
+  // GET /api/reference/jp-breadth → Japan advancers/decliners + TSE 33-industry sectors
   // from the user's self-hosted kabu gateway database (read-only DB token).
   app.get('/jp-breadth', async (c) => {
     const cfg = await kabuConfig()

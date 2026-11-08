@@ -2195,7 +2195,7 @@ export const zh: Resources = {
       decliners: '下跌',
       unchanged: '平盘',
       total: '共 {{total}} 只',
-      sectorsTitle: 'TOPIX-17 行业（等权平均涨跌幅）',
+      sectorsTitle: '东证 33 业种（等权平均涨跌幅）',
       notConfigured: '配置 kabu 网关（地址和只读 Token）后，这里会显示涨跌家数和各行业表现。',
       loadFailed: '市场宽度加载失败：{{error}}',
       openSettings: '打开行情数据设置',

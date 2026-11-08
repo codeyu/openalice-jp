@@ -2199,7 +2199,7 @@ export const zhHant: Resources = {
       decliners: '下跌',
       unchanged: '平盤',
       total: '共 {{total}} 檔',
-      sectorsTitle: 'TOPIX-17 產業（等權平均漲跌幅）',
+      sectorsTitle: '東證 33 業種（等權平均漲跌幅）',
       notConfigured: '設定 kabu 閘道（位址與唯讀 Token）後，這裡會顯示漲跌家數與各產業表現。',
       loadFailed: '市場寬度載入失敗：{{error}}',
       openSettings: '開啟行情資料設定',

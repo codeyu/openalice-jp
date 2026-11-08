@@ -519,7 +519,7 @@ function KabuGatewaySection({
       <h2 className="mb-2 text-[13px] leading-[18px] font-semibold text-foreground">Japan market — kabu gateway</h2>
       <p className="text-[12px] text-muted-foreground/70 mb-2.5 max-w-[640px]">
         Your self-hosted kabu STATION gateway, read-only: its database feeds Japan market breadth and
-        TOPIX-17 sector moves. Never paste an order-capable token here — broker access belongs to a UTA
+        TSE 33-industry moves. Never paste an order-capable token here — broker access belongs to a UTA
         account.
       </p>
       <div className="rounded-lg border border-border/70 bg-card px-4 py-3.5 space-y-3">
