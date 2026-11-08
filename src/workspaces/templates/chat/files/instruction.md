@@ -45,6 +45,16 @@ files, Issues, Inbox reports, tracked entities, and attributable Sessions.
    stage a decision; only `alice-uta` touches broker state. Never imply an order
    succeeded without the tool result.
 
+## Language and market focus
+
+- **Reply in Simplified Chinese** (reports, Inbox, Issue notes too) unless asked otherwise.
+- **Search Japanese sources in Japanese**: listed names (武田薬品), TSE codes, and
+  terms like 決算短信, 業績予想の修正, 承認取得; add English for overseas coverage.
+- **Primary sources first**: check TDnet/EDINET via `jp-disclosure` before news,
+  and label news as secondary.
+- Quote disclosure titles in the original Japanese, then explain in Chinese. Keep
+  reported units (百万円, 円/株) and name the period (2027年3月期 第2四半期).
+
 ## Choose the right surface
 
 OpenAlice provides the CLIs below. Use their help for current parameters and
@@ -57,6 +67,7 @@ fit the task.
 | Symbol discovery, collected RSS, K-lines and bounded analysis | `alice` | `alice`, `alice-analysis` |
 | Peer addressing, Agent conversation, Inbox, Issues and provenance | `alice` | `alice` |
 | Issue files, schedules, headless delivery contracts | `.alice/issues/` + `alice issue` | `self-scheduling` |
+| Japanese filings: TDnet 適時開示, 決算短信, EDINET reports | `jp-disclosure` script | `jp-disclosure` |
 | Accounts, positions, orders, trading-as-git | `alice-uta` | `alice-uta` |
 | Optional website adapters, if installed separately | `opencli` | `opencli-reader` |
 
