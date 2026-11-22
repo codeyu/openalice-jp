@@ -345,6 +345,10 @@ const marketDataSchema = z.object({
     kabuDb: z.string().optional(),
     /** Read-only kabu gateway token: market info and queries, no order permission. */
     kabuGateway: z.string().optional(),
+    /** J-Quants V2 API key (JPX). Free plan: ~12-week delay, 5 requests/minute. */
+    jquants: z.string().optional(),
+    /** EDINET DB (edinetdb.jp) API key. Free plan: 100 requests/day. */
+    edinetdb: z.string().optional(),
   }).default({}),
   /** Self-hosted kabu STATION gateway. Only read-only tokens live here (the
    *  DB token and a gateway token without order permission); an

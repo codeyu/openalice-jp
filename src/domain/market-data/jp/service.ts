@@ -7,10 +7,13 @@
 import { createHash } from 'node:crypto'
 
 import { readMarketDataConfig } from '@/core/config.js'
+import { dataPath } from '@/core/paths.js'
+import { createDiskCache, createEdinetDbClient, createJQuantsClient, type DiskCache, type FetchLike } from './api-clients.js'
+import { fetchJpStockFinancials, fetchJpStockFundamentals, type JpStockFundamentals } from './fundamentals.js'
 import { fetchJpBreadth, type JpBreadthBoard } from './breadth.js'
 import { fetchKabuBars, type KabuBar, type KabuBarsOpts } from './kabu-bars.js'
 import type { KabuDbConfig } from './kabu-db.js'
-import { fetchJpMovers, fetchJpRankingTypes, type JpMoversBoard, type JpRankingType } from './movers.js'
+import { fetchJpMovers, fetchJpRankingDates, fetchJpRankingTypes, type JpMoversBoard, type JpRankingType } from './movers.js'
 
 const TTL = { breadth: 10 * 60_000, movers: 5 * 60_000, rankingTypes: 60 * 60_000, bars: 10 * 60_000 } as const
 
@@ -48,8 +51,30 @@ export function createKeyedCache<T>(ttlMs: number) {
   }
 }
 
+export interface JpApiKeys {
+  jquants?: string
+  edinetdb?: string
+}
+
+/** Settings keys win; the documented env vars are a fallback for headless installs. */
+export function resolveJpApiKeys(providerKeys: { jquants?: string; edinetdb?: string }, env: NodeJS.ProcessEnv = process.env): JpApiKeys {
+  const pick = (a?: string, b?: string) => a?.trim() || b?.trim() || undefined
+  return {
+    jquants: pick(providerKeys.jquants, env['JPX_JQUANTS_API_KEY']),
+    edinetdb: pick(providerKeys.edinetdb, env['EDINETDB_API_KEY']),
+  }
+}
+
+export async function readJpApiKeys(): Promise<JpApiKeys> {
+  return resolveJpApiKeys((await readMarketDataConfig()).providerKeys)
+}
+
 export interface JpMarketDataDeps {
   readConfig: () => Promise<KabuDbConfig | null>
+  readApiKeys?: () => Promise<JpApiKeys>
+  /** Disk cache for the quota-limited fundamentals APIs. */
+  fundamentalsCache?: DiskCache
+  fetchImpl?: FetchLike
   loadBreadth?: typeof fetchJpBreadth
   loadRankingTypes?: typeof fetchJpRankingTypes
   loadMovers?: typeof fetchJpMovers
@@ -93,20 +118,58 @@ export function createJpMarketData(deps: JpMarketDataDeps) {
       return breadthCache.get(configKey(cfg), () => loadBreadth(cfg))
     },
     rankingTypes,
-    async movers(type: string): Promise<JpMoversBoard> {
+    async movers(type: string, date?: string): Promise<JpMoversBoard> {
       const cfg = await config()
       const types = await rankingTypes()
       if (!types.some((t) => t.type === type)) {
         throw new Error(`unknown ranking type: ${type} (available: ${types.map((t) => t.type).join(', ')})`)
       }
-      return moversCache.get(`${configKey(cfg)}|${type}`, () => loadMovers(cfg, type, types))
+      return moversCache.get(`${configKey(cfg)}|${type}|${date ?? 'latest'}`, () => loadMovers(cfg, type, types, undefined, undefined, date))
+    },
+    async rankingDates(type: string, limit = 20): Promise<string[]> {
+      const cfg = await config()
+      return fetchJpRankingDates(cfg, type, Math.max(1, Math.min(250, limit)))
     },
     async bars(symbol: string, opts: KabuBarsOpts): Promise<KabuBar[]> {
       const cfg = await config()
       const key = `${configKey(cfg)}|${symbol}|${opts.interval}|${opts.count ?? ''}|${opts.start ?? ''}|${opts.end ?? ''}`
       return barsCache.get(key, () => loadBars(cfg, symbol, opts))
     },
+    async fundamentals(symbol: string): Promise<JpStockFundamentals> {
+      return fetchJpStockFundamentals(symbol, {
+        ...(await apiDeps()),
+        latestPrice: async (code) => {
+          if (!(await deps.readConfig())) return null
+          const cfg = await config()
+          const [bar] = (await barsCache.get(`${configKey(cfg)}|${code}|1d|1||`, () => loadBars(cfg, code, { interval: '1d', count: 1 })))
+          return bar ? { date: bar.date, close: bar.close } : null
+        },
+        dailyBars: async (code, count) => {
+          if (!(await deps.readConfig())) return []
+          const cfg = await config()
+          return barsCache.get(`${configKey(cfg)}|${code}|1d|${count}||`, () => loadBars(cfg, code, { interval: '1d', count }))
+        },
+      })
+    },
+    async financials(symbol: string, years: number): Promise<unknown> {
+      return fetchJpStockFinancials(symbol, years, await apiDeps())
+    },
   }
+
+  async function apiDeps() {
+    const keys = await (deps.readApiKeys ?? readJpApiKeys)()
+    return {
+      edinet: keys.edinetdb ? createEdinetDbClient(keys.edinetdb, deps.fetchImpl) : null,
+      jquants: keys.jquants ? createJQuantsClient(keys.jquants, deps.fetchImpl) : null,
+      cache: deps.fundamentalsCache ?? defaultFundamentalsCache(),
+    }
+  }
+}
+
+let sharedFundamentalsCache: DiskCache | null = null
+function defaultFundamentalsCache(): DiskCache {
+  sharedFundamentalsCache ??= createDiskCache(dataPath('cache', 'jp-fundamentals'))
+  return sharedFundamentalsCache
 }
 
 export type JpMarketData = ReturnType<typeof createJpMarketData>

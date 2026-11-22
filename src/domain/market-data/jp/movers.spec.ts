@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { fetchJpMovers, fetchJpRankingTypes, stripIndexPrefix, toMoverRow } from './movers.js'
+import { fetchJpMovers, fetchJpRankingDates, fetchJpRankingTypes, stripIndexPrefix, toMoverRow } from './movers.js'
 import { createKeyedCache } from './service.js'
 
 const cfg = { baseUrl: 'https://gw.example.com', token: 'read-only' }
@@ -32,18 +32,13 @@ describe('jp movers', () => {
     expect(stripIndexPrefix('IS　精密')).toBe('精密')
   })
 
-  it('reads ranking types and the latest stored date for the requested type', async () => {
-    const fetchImpl = vi.fn(async (url: string) => {
-      const u = new URL(url)
-      if (u.pathname.endsWith('/ranking_types')) return json([{ ranking_type: 'gain', title: '今日の値上がり率', subject: 'stock' }])
-      if (u.searchParams.get('select') === 'trade_date') return json([{ trade_date: '2026-11-06' }])
-      return json([{ trade_date: '2026-11-06', rank_no: 1, stock_code: '318A', stock_name: 'ＶＩＸＥＴＦ', exchange_name: null, category_name: null, price: 420, change_ratio: 80, change_pct: 23.52, volume: null, turnover: null, as_of_time: '15:30', extras: null }])
-    })
+  it('reads ranking types and the latest stored trading day for the requested type', async () => {
+    const fetchImpl = fakeDb({ rankingDates: ['2026-11-06'], tradingDays: ['2026-11-06'], latestBar: '2026-11-06' })
     expect(await fetchJpRankingTypes(cfg, fetchImpl)).toEqual([{ type: 'gain', title: '今日の値上がり率', subject: 'stock' }])
     const board = await fetchJpMovers(cfg, 'gain', types, fetchImpl, new Date('2026-11-08T00:00:00Z'))
     expect(board).toMatchObject({ date: '2026-11-06', type: { type: 'gain' }, rows: [{ rank: 1, code: '318A', changePct: 23.52 }], meta: { provider: 'kabu-db' } })
     const urls = fetchImpl.mock.calls.map(([u]) => u as string)
-    expect(urls).toContain('https://gw.example.com/rest/v1/rankings?select=trade_date&ranking_type=eq.gain&order=trade_date.desc&limit=1')
+    expect(urls.some((u) => u.includes('rankings?select=trade_date&ranking_type=eq.gain&rank_no=lte.5&order=trade_date.desc'))).toBe(true)
     expect(urls.some((u) => u.includes('ranking_type=eq.gain&trade_date=eq.2026-11-06&order=rank_no'))).toBe(true)
   })
 
@@ -62,5 +57,48 @@ describe('jp movers', () => {
     expect(await cache.get('a', load)).toBe(7)
     expect(await cache.get('b', async () => 9)).toBe(9)
     expect(load).toHaveBeenCalledTimes(2)
+  })
+})
+
+/**
+ * A tiny fake of the gateway: rankings stored for `rankingDates` (holidays
+ * included, as the importer does), daily bars only on `tradingDays`.
+ */
+function fakeDb(opts: { rankingDates: string[]; tradingDays: string[]; latestBar: string }) {
+  return vi.fn(async (url: string, _init?: RequestInit) => {
+    const u = new URL(url)
+    const lte = u.searchParams.get('trade_date')?.replace(/^lte\./, '')
+    if (u.pathname.endsWith('/ranking_types')) return json([{ ranking_type: 'gain', title: '今日の値上がり率', subject: 'stock' }])
+    if (u.pathname.endsWith('/ohlcv_daily') && !u.searchParams.get('stock_code')) return json([{ ts: `${opts.latestBar}T00:00:00+09:00` }])
+    if (u.pathname.endsWith('/ohlcv_daily')) {
+      // one row per bellwether per trading day
+      return json(opts.tradingDays.flatMap((d) => [{ ts: `${d}T00:00:00+09:00` }, { ts: `${d}T00:00:00+09:00` }]))
+    }
+    if (u.searchParams.get('select') === 'trade_date') {
+      const dates = opts.rankingDates.filter((d) => !lte || d <= lte)
+      return json(dates.flatMap((d) => [{ trade_date: d }, { trade_date: d }]))
+    }
+    const eq = u.searchParams.get('trade_date')?.replace(/^eq\./, '')
+    return json([{ trade_date: eq, rank_no: 1, stock_code: '318A', stock_name: 'ＶＩＸＥＴＦ', exchange_name: null, category_name: null, price: 420, change_ratio: 80, change_pct: 23.52, volume: null, turnover: null, as_of_time: '15:30', extras: null }])
+  })
+}
+
+describe('jp movers by date', () => {
+  // The rankings importer stored 2026-11-03 (文化の日) as a copy of 11-02; daily bars have no 11-03.
+  const db = { rankingDates: ['2026-11-06', '2026-11-05', '2026-11-04', '2026-11-03', '2026-11-02'], tradingDays: ['2026-11-06', '2026-11-05', '2026-11-04', '2026-11-02'], latestBar: '2026-11-06' }
+
+  it('lists only real trading days and skips holiday rows', async () => {
+    expect(await fetchJpRankingDates(cfg, 'sector_gain', 4, fakeDb(db))).toEqual(['2026-11-06', '2026-11-05', '2026-11-04', '2026-11-02'])
+  })
+
+  it('reads a requested trading day, or the nearest trading day before a holiday', async () => {
+    expect((await fetchJpMovers(cfg, 'gain', types, fakeDb(db), new Date(), '2026-11-04')).date).toBe('2026-11-04')
+    expect((await fetchJpMovers(cfg, 'gain', types, fakeDb(db), new Date(), '2026-11-03')).date).toBe('2026-11-02')
+    await expect(fetchJpMovers(cfg, 'gain', types, fakeDb(db), new Date(), '2026/11/04')).rejects.toThrow('YYYY-MM-DD')
+  })
+
+  it('keeps a ranking day newer than the latest daily bar (prices not imported yet)', async () => {
+    const fresh = { ...db, rankingDates: ['2026-11-09', ...db.rankingDates] }
+    expect((await fetchJpMovers(cfg, 'gain', types, fakeDb(fresh), new Date())).date).toBe('2026-11-09')
   })
 })

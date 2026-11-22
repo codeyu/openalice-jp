@@ -302,6 +302,8 @@ export function MarketDataPage() {
             onBaseUrlChange={(value) => updateConfig({ kabu: { ...kabu, baseUrl: value } })}
             onGatewayTokenChange={(value) => handleKeyChange('kabuGateway', value)}
           />
+
+          <JpFundamentalsSection providerKeys={providerKeys} onKeyChange={handleKeyChange} />
         </div>
         <BrokerKlineSourcesSection
           utas={trading.utas}
@@ -553,6 +555,52 @@ function KabuGatewaySection({
             <span role="status" className={`text-[12px] ${test.state === 'ok' ? 'text-success' : 'text-destructive'}`}>{test.text}</span>
           )}
         </div>
+      </div>
+    </section>
+  )
+}
+
+// ==================== Japan: fundamentals APIs ====================
+
+const JP_FUNDAMENTAL_KEYS = [
+  {
+    key: 'jquants',
+    name: 'J-Quants API key',
+    hint: 'JPX official (jpx-jquants.com). Free plan: data about 12 weeks delayed, 2 years of history, 5 requests/minute — used for the stock master and valuation history.',
+  },
+  {
+    key: 'edinetdb',
+    name: 'EDINET DB API key',
+    hint: 'edinetdb.jp. Free plan: 100 requests/day — used for the latest 決算短信, company forecasts and yearly ratios. Responses are cached on disk to save quota.',
+  },
+] as const
+
+function JpFundamentalsSection({ providerKeys, onKeyChange }: {
+  providerKeys: Record<string, string>
+  onKeyChange: (keyName: string, value: string) => void
+}) {
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 text-[13px] leading-[18px] font-semibold text-foreground">Japan fundamentals — J-Quants &amp; EDINET DB</h2>
+      <p className="text-[12px] text-muted-foreground/70 mb-2.5 max-w-[640px]">
+        Powers the Agents&apos; Japanese stock fundamentals (traderhub japan fundamentals). Keys stay on this
+        machine with your other data-provider keys; the JPX_JQUANTS_API_KEY / EDINETDB_API_KEY environment
+        variables also work when these fields are empty.
+      </p>
+      <div className="rounded-lg border border-border/70 bg-card px-4 py-3.5 space-y-3">
+        {JP_FUNDAMENTAL_KEYS.map((entry) => (
+          <label key={entry.key} className="block">
+            <span className="block text-[12px] font-medium text-foreground">{entry.name}</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={providerKeys[entry.key] ?? ''}
+              onChange={(e) => onKeyChange(entry.key, e.target.value)}
+              className={`${inputClass} mt-1 max-w-[420px] font-mono text-[12px]`}
+            />
+            <span className="mt-1 block text-[11px] text-muted-foreground/70">{entry.hint}</span>
+          </label>
+        ))}
       </div>
     </section>
   )
