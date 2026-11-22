@@ -14,6 +14,7 @@ import { fetchJpBreadth, type JpBreadthBoard } from './breadth.js'
 import { fetchKabuBars, type KabuBar, type KabuBarsOpts } from './kabu-bars.js'
 import type { KabuDbConfig } from './kabu-db.js'
 import { fetchJpMovers, fetchJpRankingDates, fetchJpRankingTypes, type JpMoversBoard, type JpRankingType } from './movers.js'
+import { loadJpHoldings, type JpHoldingsView } from './holdings.js'
 
 const TTL = { breadth: 10 * 60_000, movers: 5 * 60_000, rankingTypes: 60 * 60_000, bars: 10 * 60_000 } as const
 
@@ -79,6 +80,13 @@ export interface JpMarketDataDeps {
   loadRankingTypes?: typeof fetchJpRankingTypes
   loadMovers?: typeof fetchJpMovers
   loadBars?: typeof fetchKabuBars
+  /** Folders scanned for broker holdings exports (default: data/holdings + configured extras). */
+  readHoldingsDirs?: () => Promise<string[]>
+}
+
+export async function readHoldingsDirs(): Promise<string[]> {
+  const md = await readMarketDataConfig()
+  return [dataPath('holdings'), ...md.holdings.extraDirs.map((d) => d.trim()).filter(Boolean)]
 }
 
 export async function readKabuConfig(): Promise<KabuDbConfig | null> {
@@ -153,6 +161,11 @@ export function createJpMarketData(deps: JpMarketDataDeps) {
     },
     async financials(symbol: string, years: number): Promise<unknown> {
       return fetchJpStockFinancials(symbol, years, await apiDeps())
+    },
+    /** Holdings from broker CSV exports; kabu enrichment is optional. */
+    async holdings(asOf?: string): Promise<JpHoldingsView> {
+      const dirs = await (deps.readHoldingsDirs ?? readHoldingsDirs)()
+      return loadJpHoldings({ dirs, kabu: await deps.readConfig(), fetchImpl: deps.fetchImpl }, asOf)
     },
   }
 

@@ -106,5 +106,24 @@ Costs 1 EDINET DB call per stock and window (Free: 100/day), cached 3 days.`,
       }).meta({ examples: [{ code: '7203', years: 3 }] }),
       execute: async ({ code, years }) => jp.financials(code, years ?? 3),
     }),
+
+    japanHoldings: tool({
+      description: `The user's own holdings, read from broker CSV exports (Japanese brokers
+rarely offer APIs). Exports live in data/holdings/<broker>/ or configured extra
+folders; SBI証券「保有証券一覧」(SBI保有証券一覧_YYYYMMDD.csv) is supported.
+Returns the latest export per broker:
+- stocks: code, name, account (taxable / nisa-growth / nisa-legacy …), quantity,
+  avg cost, latest kabu close, value, P&L, weight %, TSE 33 sector, kabuyoho signal
+- funds: investment trusts at export-time NAV (no codes)
+- totals by account and by sector (concentration)
+- changes vs the previous export (added / increased / decreased / removed)
+Read-only research input — not a UTA account; nothing here can trade.
+Personal data: summarise, do not paste the full table back unprompted.`,
+      inputSchema: z.object({
+        asOf: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+          .describe('YYYY-MM-DD: use the latest export on or before this date (default: newest)'),
+      }).meta({ examples: [{}, { asOf: '2026-11-15' }] }),
+      execute: async ({ asOf }) => jp.holdings(asOf),
+    }),
   }
 }

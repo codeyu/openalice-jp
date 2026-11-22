@@ -64,7 +64,7 @@ const BASE_EXPORTS: Record<string, CliExport> = {
     description: 'Low-frequency market data — boards, fundamentals, macro, calendars (TraderHub-first)',
     groupDescriptions: {
       board: 'Read finished market boards and sector rotation',
-      japan: 'Japan market breadth, rankings (kabu gateway) and stock fundamentals (EDINET DB + J-Quants)',
+      japan: 'Japan market breadth, rankings (kabu gateway), stock fundamentals (EDINET DB + J-Quants) and holdings from broker CSV exports',
       equity: 'Read company profiles, fundamentals, estimates, and calendars',
       etf: 'Search ETFs and inspect holdings or sector exposure',
       economy: 'Read US and euro-area macro series',
@@ -86,6 +86,7 @@ const BASE_EXPORTS: Record<string, CliExport> = {
         'ranking-dates': 'japanRankingDates',
         fundamentals: 'japanStockFundamentals',
         financials: 'japanStockFinancials',
+        holdings: 'japanHoldings',
       },
       equity: {
         profile: 'equityGetProfile',

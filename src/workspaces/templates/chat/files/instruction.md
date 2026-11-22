@@ -74,7 +74,7 @@ fit the task.
 | Peer addressing, Agent conversation, Inbox, Issues and provenance | `alice` | `alice` |
 | Issue files, schedules, headless delivery contracts | `.alice/issues/` + `alice issue` | `self-scheduling` |
 | Japanese filings: TDnet 適時開示, 決算短信, EDINET reports | `jp-disclosure` script | `jp-disclosure` |
-| Japan breadth, TSE 33 industries, rankings; `kabu\|<code>` K-lines | `traderhub japan`, `alice market bars` | `traderhub`, `market-data` |
+| Japan breadth, TSE 33 industries, rankings; `kabu\|<code>` K-lines; the user's holdings (broker CSV exports) | `traderhub japan`, `alice market bars` | `traderhub`, `market-data` |
 | Accounts, positions, orders, trading-as-git | `alice-uta` | `alice-uta` |
 | Optional website adapters, if installed separately | `opencli` | `opencli-reader` |
 

@@ -100,6 +100,27 @@ and a 2-year valuation range. Rules:
   first, then call `fundamentals` for the few that matter. Repeats are cached.
 - For non-Japanese stocks use the `equity` commands below instead.
 
+### The user's holdings (broker CSV exports)
+
+```bash
+traderhub japan holdings                     # newest export per broker, revalued at the latest kabu close
+traderhub japan holdings --as-of 2026-11-15  # the export on or before a date
+```
+
+Japanese brokers rarely offer APIs, so the user exports holdings CSVs into
+`data/holdings/<broker>/` (or a configured extra folder). Supported: SBI証券
+「保有証券一覧」(`SBI保有証券一覧_YYYYMMDD.csv`). The result has per-position
+account (taxable / nisa-growth / nisa-legacy …), cost, latest value, P&L,
+weight, TSE 33 sector and kabuyoho signal; funds at export-time NAV; totals by
+account and sector; and `changes` versus the previous export.
+
+- It is research input, not a UTA account: nothing here can place orders.
+- `sources[].date` is when the user exported; quantities may have changed since.
+  Say the export date when you discuss positions.
+- Personal data: summarise (concentration, biggest risks, what changed) rather
+  than repeating the whole table; never write it to shared or tracked files.
+- For a portfolio review follow the `jp-market-analysis` skill's portfolio section.
+
 ## Equity fundamentals
 
 ```bash

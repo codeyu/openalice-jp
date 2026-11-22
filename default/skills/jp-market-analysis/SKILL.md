@@ -135,3 +135,31 @@ line item. Note data gaps (missing bars, delayed valuation history) in one line.
 Label each claim as data (with source and date) or as your inference. A
 hypothesis is allowed and expected; present it as one, never as fact. This is
 research, not personalised investment advice — say so once, briefly, at the end.
+
+## Portfolio review — when the user asks about "my holdings / 我的持仓"
+
+```bash
+traderhub japan holdings        # latest broker CSV export, revalued at the kabu close
+```
+
+Run steps 1–3 first (regime, drivers, rotation), then read the holdings
+against them. State the export date; positions may have changed since.
+
+1. **Concentration** — top 5 weights and the TSE 33 sector split. Group the
+   names into the comparison baskets (AI & semiconductors, robotics,
+   defensive consumer / pharma / infrastructure, other) and give each
+   basket's share. Flag any single name above ~10% or basket above ~40%.
+2. **Fit with the regime** — is the portfolio leaning with or against the
+   current rotation? Which positions carry the move that hurt or helped most
+   in the last 5 / 20 sessions?
+3. **Accounts** — NISA losses cannot offset taxable gains: long-horizon core
+   names belong in NISA, trades in the taxable account. Point out mismatches.
+4. **What changed** — summarise `changes` (added / increased / decreased /
+   removed) and whether those moves chased or faded the rotation.
+5. **Per position, briefly** — tag each meaningful position core / value /
+   small-and-volatile / wait, using fundamentals only for the few that matter
+   (quota: do not call `fundamentals` for every holding).
+
+Answer in the same Chinese format, with **结论** on the portfolio as a whole
+(e.g. 过度集中在 AI 链，建议…) and a short 关注清单. Summarise rather than
+reprinting the full holdings table.

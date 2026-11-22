@@ -356,6 +356,12 @@ const marketDataSchema = z.object({
   kabu: z.object({
     baseUrl: z.string().default(''),
   }).default({ baseUrl: '' }),
+  /** Broker holdings CSV exports (read-only research input, not UTA accounts).
+   *  `data/holdings/` is always scanned; `extraDirs` adds folders the user
+   *  already exports into, so files need not be copied. */
+  holdings: z.object({
+    extraDirs: z.array(z.string()).default([]),
+  }).default({ extraDirs: [] }),
   /** Hosted reference-data hub (TraderHub). Enabled by default: anonymous
    *  GETs of public boards, no user data attached; one switch to opt out.
    *  Self-hosters point baseUrl at their own instance. */
