@@ -142,7 +142,7 @@ describe('ActivityBar current destination', () => {
     mocks.focusedKind = focusedKind
     render(<ActivityBar open onClose={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Quick Start' }).hasAttribute('aria-current')).toBe(false)
-    expect(screen.getAllByTestId(/^harness-/).map(node => node.dataset.testid)).toEqual(['harness-chat', 'harness-auto-quant', 'harness-prediction'])
+    expect(screen.getAllByTestId(/^harness-/).map(node => node.dataset.testid)).toEqual(['harness-chat', 'harness-auto-quant'])
     const tools = document.getElementById('activity-section-primary')!
     expect(tools.contains(screen.getByTestId('harness-auto-quant'))).toBe(false)
   })

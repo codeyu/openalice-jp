@@ -6,7 +6,6 @@ import {
   ListChecks,
   SquarePen,
   Microscope,
-  Binary,
   Telescope,
   type LucideIcon,
 } from 'lucide-react'
@@ -86,7 +85,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { page: 'tracked',    labelKey: 'nav.item.tracked',    icon: Telescope, defaultTab: { kind: 'tracked', params: {} } },
       // News is a Market navigator leaf, not a rail item.
       { page: 'market',     labelKey: 'nav.item.market',     icon: BarChart3, defaultTab: { kind: 'market-list', params: {} } },
-      { page: 'prediction', labelKey: 'nav.item.autoPrediction', icon: Binary, defaultTab: { kind: 'auto-prediction-landing', params: {} } },
+      // Auto Prediction (prediction markets) is not offered in this fork.
       { page: 'office',     labelKey: 'nav.item.office',     icon: Building2, defaultTab: { kind: 'office', params: {} } },
       // Trading as Git and broker accounts are Trading navigator leaves, not rail items.
       { page: 'portfolio',  labelKey: 'nav.item.trading',    icon: LineChart, defaultTab: { kind: 'portfolio', params: {} } },

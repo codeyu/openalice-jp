@@ -19,7 +19,7 @@ describe('ui-layout document', () => {
     const catalogPages = NAV_SECTIONS.flatMap((section) => section.items.map((item) => item.page))
     // Persisted layout validation stays compatible; the navigation catalog
     // decides which accepted ids can actually appear or be configured.
-    expect(new Set(catalogPages)).toEqual(new Set(ACTIVITY_PAGE_IDS.filter(page => page !== 'workspaces' && page !== 'automation' && page !== 'connectors')))
+    expect(new Set(catalogPages)).toEqual(new Set(ACTIVITY_PAGE_IDS.filter(page => page !== 'workspaces' && page !== 'automation' && page !== 'connectors' && page !== 'prediction')))
     expect(defaultUiLayout().hidden).toEqual([])
     expect(defaultUiLayout().hidden).not.toContain(PINNED_ACTIVITY_PAGE)
   })

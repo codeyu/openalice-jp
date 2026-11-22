@@ -110,12 +110,13 @@ describe('ActivityBar mobile drawer state', () => {
     render(<ActivityBar open onClose={vi.fn()} desktopStatic={false} />)
 
     const primaryAction = screen.getByRole('button', { name: 'Quick Start' })
-    const predictionAction = screen.getByRole('button', { name: 'prediction Harness' })
+    const quantAction = screen.getByRole('button', { name: 'auto-quant Harness' })
 
     expect(primaryAction.className).toContain('min-h-10')
     expect(primaryAction.className).toContain('md:min-h-8')
-    expect(predictionAction.className).toContain('min-h-10')
-    expect(predictionAction.className).toContain('md:min-h-8')
+    expect(quantAction.className).toContain('min-h-10')
+    expect(quantAction.className).toContain('md:min-h-8')
+    expect(screen.queryByRole('button', { name: 'prediction Harness' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Beta' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'nav.about' })).toBeNull()
   })

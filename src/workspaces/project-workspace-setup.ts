@@ -3,8 +3,8 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import { userDataHome } from '../core/paths.js'
 import {
-  readQuickChatPreferences, readAutoQuantPreferences, readAutoPredictionPreferences,
-  rememberRecentChatWorkspace, rememberAutoQuantDefaultWorkspace, rememberAutoPredictionDefaultWorkspace,
+  readQuickChatPreferences, readAutoQuantPreferences,
+  rememberRecentChatWorkspace, rememberAutoQuantDefaultWorkspace,
 } from '../core/preferences.js'
 import type { WorkspaceService } from './service.js'
 
@@ -13,15 +13,21 @@ const setupSchema = z.object({
   pending: z.array(z.enum(['chat', 'auto-quant', 'auto-prediction'])),
   errors: z.record(z.string(), z.string()).optional(),
 })
-const DEFAULT_WORKSPACES = ['chat', 'auto-quant', 'auto-prediction'] as const
+/**
+ * This fork does not ship Auto Prediction (prediction markets): it is never
+ * created by default, and a pending request left by an older build is dropped.
+ * The schema still accepts the value so existing setup files keep parsing.
+ */
+const DEFAULT_WORKSPACES = ['chat', 'auto-quant'] as const
 type DefaultWorkspace = typeof DEFAULT_WORKSPACES[number]
+const isDefaultWorkspace = (kind: string): kind is DefaultWorkspace => (DEFAULT_WORKSPACES as readonly string[]).includes(kind)
 
 /** Consumes an explicit project-birth request under the backend's writer lease.
  * Success is checkpointed only after the canonical default preference is saved.
  * Resolvers reuse an existing instance if a previous attempt was interrupted.
  */
 async function prepareUnlocked(
-  service: Pick<WorkspaceService, 'registry' | 'resolveOrCreateChatWorkspace' | 'resolveOrCreateAutoQuantWorkspace' | 'resolveOrCreateAutoPredictionWorkspace'>,
+  service: Pick<WorkspaceService, 'registry' | 'resolveOrCreateChatWorkspace' | 'resolveOrCreateAutoQuantWorkspace'>,
   options: { home?: string; onProgress?: (workspace: string, error?: string) => void } = {},
 ): Promise<void> {
   const home = options.home ?? userDataHome
@@ -31,14 +37,15 @@ async function prepareUnlocked(
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
     request = { schemaVersion: 1, pending: [] }
   }
+  request.pending = request.pending.filter(isDefaultWorkspace)
+  if (request.errors) delete request.errors['auto-prediction']
   const preferences = join(home, 'data', 'preferences.json')
-  const selected = {
+  const selected: Record<DefaultWorkspace, string | null | undefined> = {
     chat: (await readQuickChatPreferences(preferences)).recentChatWorkspaceId,
     'auto-quant': (await readAutoQuantPreferences(preferences)).defaultWorkspaceId,
-    'auto-prediction': (await readAutoPredictionPreferences(preferences)).defaultWorkspaceId,
   }
   const templates: Record<DefaultWorkspace, string> = {
-    chat: 'chat', 'auto-quant': 'auto-quant-v2', 'auto-prediction': 'auto-prediction',
+    chat: 'chat', 'auto-quant': 'auto-quant-v2',
   }
   for (const kind of DEFAULT_WORKSPACES) {
     const id = selected[kind]
@@ -52,13 +59,10 @@ async function prepareUnlocked(
     try {
       const result = kind === 'chat'
         ? await service.resolveOrCreateChatWorkspace((await readQuickChatPreferences(preferences)).recentChatWorkspaceId)
-        : kind === 'auto-quant'
-          ? await service.resolveOrCreateAutoQuantWorkspace((await readAutoQuantPreferences(preferences)).defaultWorkspaceId)
-          : await service.resolveOrCreateAutoPredictionWorkspace((await readAutoPredictionPreferences(preferences)).defaultWorkspaceId)
+        : await service.resolveOrCreateAutoQuantWorkspace((await readAutoQuantPreferences(preferences)).defaultWorkspaceId)
       if (!result.ok) throw new Error(result.message)
       if (kind === 'chat') await rememberRecentChatWorkspace(result.workspace.id, preferences)
-      else if (kind === 'auto-quant') await rememberAutoQuantDefaultWorkspace(result.workspace.id, preferences)
-      else await rememberAutoPredictionDefaultWorkspace(result.workspace.id, preferences)
+      else await rememberAutoQuantDefaultWorkspace(result.workspace.id, preferences)
       request.pending = request.pending.filter(item => item !== kind)
       if (request.errors) delete request.errors[kind]
     } catch (error) {

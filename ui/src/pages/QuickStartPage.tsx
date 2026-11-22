@@ -1,16 +1,16 @@
 import { ProjectWorkspaceSetupNotice } from '../components/ProjectWorkspaceSetupNotice'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Binary, ChevronDown, MessageSquare, Microscope } from 'lucide-react'
+import { ChevronDown, MessageSquare, Microscope } from 'lucide-react'
 import { PageContentLayout, PageTopBar } from '../components/PageTopBar'
 import { Button } from '../components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu'
-import { AutoPredictionLandingPage, AutoQuantLandingPage, ChatLandingPage } from './ChatLandingPage'
+import { AutoQuantLandingPage, ChatLandingPage } from './ChatLandingPage'
 
+// Auto Prediction (prediction markets) is not offered in this fork.
 const HARNESS_CHOICES = [
   { id: 'chat', label: 'nav.generalChat', Icon: MessageSquare, Page: ChatLandingPage },
   { id: 'auto-quant', label: 'nav.item.autoQuant', Icon: Microscope, Page: AutoQuantLandingPage },
-  { id: 'prediction', label: 'nav.item.autoPrediction', Icon: Binary, Page: AutoPredictionLandingPage },
 ] as const
 type Harness = typeof HARNESS_CHOICES[number]['id']
 
@@ -19,7 +19,7 @@ export function QuickStartPage() {
   const { t } = useTranslation()
   const [prepared, setPrepared] = useState(0)
   const [harness, setHarness] = useState<Harness>('chat')
-  const [drafts, setDrafts] = useState<Record<Harness, string>>({ chat: '', 'auto-quant': '', prediction: '' })
+  const [drafts, setDrafts] = useState<Record<Harness, string>>({ chat: '', 'auto-quant': '' })
   const selected = HARNESS_CHOICES.find(choice => choice.id === harness)!
   const { Page, Icon } = selected
   return (

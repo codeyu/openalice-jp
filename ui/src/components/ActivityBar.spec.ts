@@ -16,10 +16,10 @@ describe('ActivityBar navigation hierarchy', () => {
       'auto-quant',
       'tracked',
       'market',
-      'prediction',
       'office',
       'portfolio',
     ])
+    expect(primary?.items.map((item) => item.page)).not.toContain('prediction')
     expect(primary?.items.find((item) => item.page === 'portfolio')?.labelKey).toBe('nav.item.trading')
     expect(system?.items).toEqual([])
   })
@@ -32,7 +32,6 @@ describe('ActivityBar navigation hierarchy', () => {
       'issue',
       'auto-quant',
       'tracked',
-      'prediction',
       'office',
     ])
     expect(pages).not.toContain('market')
@@ -99,7 +98,9 @@ describe('ActivityBar navigation hierarchy', () => {
     }
     const rail = joinNavLayout(NAV_SECTIONS, layout, { office: false })
     expect(rail.map(group => group.id)).toEqual(['primary'])
-    expect(rail[0].items.map(item => item.page).slice(-2)).toEqual(['market', 'prediction'])
+    // A saved Auto Prediction entry is dropped: this fork does not offer it.
+    expect(rail[0].items.map(item => item.page).slice(-2)).toEqual(['tracked', 'market'])
+    expect(editorGroupsFromLayout(NAV_SECTIONS, layout).flatMap(g => g.items.map(i => i.page))).not.toContain('prediction')
     const editor = editorGroupsFromLayout(NAV_SECTIONS, layout)
     expect(editor.some(group => group.id === 'beta')).toBe(false)
     expect(editor[0].items.find(item => item.page === 'portfolio')?.hidden).toBe(true)

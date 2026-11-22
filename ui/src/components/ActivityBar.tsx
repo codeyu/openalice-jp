@@ -129,7 +129,8 @@ export function ActivityBar({
   const narrowRail = desktopStatic && railMode !== 'full' && !compactRail
   const denseRail = desktopStatic && shortRailHeight
   const mobileDrawerRef = useRef<HTMLDivElement>(null)
-  const harnesses = (['chat', 'auto-quant', 'prediction'] as const)
+  // Auto Prediction (prediction markets) is not offered in this fork.
+  const harnesses = (['chat', 'auto-quant'] as const)
     .filter(mode => mode === 'chat' || !layout.hidden.includes(mode))
   const railContent = (
     <>
