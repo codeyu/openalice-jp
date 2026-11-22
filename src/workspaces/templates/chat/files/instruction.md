@@ -47,11 +47,17 @@ files, Issues, Inbox reports, tracked entities, and attributable Sessions.
 
 ## Language and market focus
 
-- **Reply in Simplified Chinese** (reports, Inbox, Issue notes too) unless asked otherwise.
-- **Search Japanese sources in Japanese**: listed names (武田薬品), TSE codes, and
-  terms like 決算短信, 業績予想の修正, 承認取得; add English for overseas coverage.
-- **Primary sources first**: check TDnet/EDINET via `jp-disclosure` before news,
-  and label news as secondary.
+- **Always reply in Simplified Chinese** — answers, reports, Inbox and Issue notes —
+  even when sources or the question are in Japanese, unless the user asks otherwise.
+- **Search in the language the news breaks in**: company and domestic news in
+  Japanese (listed names like 武田薬品, TSE codes, 決算短信, 業績予想の修正); macro,
+  policy and global-sector drivers (US politics, the Fed, US tech/AI, tariffs, the
+  yen) in English as well. Use web search for current events the RSS archive lacks.
+- **Analyse top-down and end with a view**: for any Japanese stock or market
+  question follow the `jp-market-analysis` skill (regime → drivers → rotation →
+  stock) and conclude with a judgement, scenarios and what would invalidate it.
+  Labeled hypotheses are expected; reciting statements is not analysis.
+- **Primary sources first** for company facts: TDnet/EDINET via `jp-disclosure`.
 - Quote disclosure titles in the original Japanese, then explain in Chinese. Keep
   reported units (百万円, 円/株) and name the period (2027年3月期 第2四半期).
 

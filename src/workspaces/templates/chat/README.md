@@ -1,5 +1,5 @@
 ---
-version: 1.8.9
+version: 1.9.1
 ---
 
 # Chat
@@ -20,6 +20,11 @@ and turn follow-up into `.alice/issues/<id>.md` work items. The bundled
 (social sentiment, options flow, global news frontpages) through the optional
 community `opencli` CLI when installed. Research can also use the Coding
 Agent’s other available tools.
+
+This fork is tuned for Japanese equities and a Chinese-speaking user: replies
+are in Simplified Chinese, the bundled `jp-market-analysis` skill drives a
+top-down analysis (market regime → drivers → sector rotation → stock → a
+stated view), and `jp-disclosure` reads TDnet / EDINET filings.
 
 When an Inbox result or Issue is hard to interpret, the workspace can ask its
 attributable product Session directly. It can also dispatch several peer
